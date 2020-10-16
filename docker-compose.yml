@@ -1,0 +1,39 @@
+version: "3"
+services:
+
+    mariadb:
+        image: yobasystems/alpine-mariadb
+        restart: always
+        container_name: mariadb
+        networks:
+            - default
+        expose:
+            - "3306"
+        environment:
+            MYSQL_DATABASE: 'download_assistant'
+            MYSQL_ROOT_PASSWORD: 'password'
+            MYSQL_USER: 'user'
+            MYSQL_PASSWORD: 'password'
+        volumes:
+          - ./mysql:/var/lib/mysql
+
+    django:
+        build:
+            context: ./src
+            dockerfile: ./Dockerfile
+        command: /bin/bash -c "python manage.py runserver 0.0.0.0:8000"
+        restart: always
+        environment:
+            - SECRET_KEY=m^0#ev__b1w4on8io73tw88iex(ft(!ry2-n$!nx8*0l1-v8^b # Dummy secret key used in development
+        container_name: django
+        networks:
+            - default
+        volumes:
+            - ./src/:/src
+        ports:
+          - "8000:8000"
+        stdin_open: true
+        tty: true
+        depends_on:
+            - mariadb
+

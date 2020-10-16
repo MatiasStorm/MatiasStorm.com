@@ -1,0 +1,7 @@
+django
+djangorestframework
+mysqlclient
+uuid
+djangorestframework-simplejwt
+timedelta
+django-cors-headers
