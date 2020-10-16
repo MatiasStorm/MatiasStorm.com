@@ -110,6 +110,10 @@ media/
 # Docker volumes:
 mysql/**
 
+
+# Elm stuff
+src/frontend/elm-stuff/**
+
 # Ignore Django Migrations in Development if you are working on team
 
 # Only for Development only
