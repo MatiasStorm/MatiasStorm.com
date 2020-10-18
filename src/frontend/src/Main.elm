@@ -1,69 +1,162 @@
-module Main exposing (..)
+module Main exposing(..)
 import Browser
-import Html exposing (Html, Attribute, button, div, text, input)
+import Browser.Navigation as Nav
+import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Url exposing (Url)
+import Url.Parser as Parser exposing(Parser)
 
-main =
-  Browser.sandbox { init = init, update = update, view = view }
 
-type Msg = 
-    Increment 
-    | Decrement 
-    | Reset
-    | ChangeText String
+-- Route
 
-type alias Model = 
-    {
-        counter : Int,
-        text: String
-    }
+type Route
+    = NotFound
+    | Home
+    | Blog
 
-init : Model
-init = 
-    {
-        counter = 0,
-        text = ""
-    }
+matchRoute : Parser (Route -> a) a
+matchRoute =
+    Parser.oneOf
+        [ Parser.map Home Parser.top
+        , Parser.map Blog (Parser.s "blog")
+        ]
 
-update : Msg -> Model -> Model
+parseUrl : Url -> Route
+parseUrl url =
+    case Parser.parse matchRoute url of
+        Just route ->
+            route
+        Nothing ->
+            NotFound
+
+
+-- MODEL
+
+
+type alias Model =
+  { key : Nav.Key
+  , url : Url.Url
+  , page : Route
+  }
+
+
+init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url key =
+  ( Model key url NotFound, Cmd.none )
+
+
+
+-- UPDATE
+
+
+type Msg
+  = LinkClicked Browser.UrlRequest
+  | UrlChanged Url.Url
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    Increment ->
-        {model | counter = model.counter + 1}
+    LinkClicked urlRequest ->
+      case urlRequest of
+        Browser.Internal url ->
+          ( {model | page = parseUrl url}, Nav.pushUrl model.key (Url.toString url) )
 
-    Decrement ->
-        {model | counter = model.counter + 1}
+        Browser.External href ->
+          ( model, Nav.load href )
 
-    Reset ->
-        {model | counter = 0}
+    UrlChanged url ->
+      ( { model | url = url }
+      , Cmd.none
+      )
 
-    ChangeText newContent ->
-        {model | text = newContent}
 
 
-view : Model -> Html Msg
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+  Sub.none
+
+
+
+-- VIEW
+viewer : Route -> Html msg
+viewer page =
+    case page of
+        NotFound ->
+            div [] [ text "Not found" ]
+        Home ->
+            homeView
+        Blog ->
+            blogView
+
+view : Model -> Browser.Document Msg
 view model =
-  div [] 
-    [ 
-        counterView model
-        , div [] 
-        [
-            input [ placeholder "Text to reverse", value model.text, onInput ChangeText] []
-            , div [] [text ( String.reverse model.text )]
-        ]
-    ]
 
-counterView : Model -> Html Msg
-counterView model  =
-    div []
-    [
-        button [ onClick Decrement ] [ text "-" ]
-        , div [] 
-        [ 
-            text (String.fromInt model.counter)
-            , button [onClick Reset ] [text "Reset"]
+  { title = "URL Interceptor"
+  , body =
+      [ navbarView 
+      , text "The current URL is: "
+      , viewer model.page
+      , ul []
+          [ viewLink "/"
+          , viewLink "/blog"
+          , viewLink "/NotFound"
+          ]
+      ]
+  }
+
+
+viewLink : String -> Html msg
+viewLink path =
+  li [] [ a [ href path ] [ text path ] ]
+
+
+homeView : Html msg
+homeView =
+    div [] [text "This is home"]
+
+blogView : Html msg
+blogView =
+    div [] [text "This is Blog"]
+
+navBarItem : String -> String -> Html msg
+navBarItem path name =
+    li [ class "nav-item" ] [ a [ href path, class "nav-link" ] [ text name ] ]
+
+
+navbarView : Html msg
+navbarView =
+    nav [ classList [ ("navbar", True)
+                    , ("navbar-expand-sm", True)
+                    , ("navbar-light", True)
+                    , ("bg-light", True)
+                    ] 
+        ] 
+        [ a [class "navbar-brand", href "/"] [text "Navbar"]
+        , div [class "collapse", class "navbar-collapse"] 
+            [ ul [class "navbar-nav" class "mr-auto"] 
+                [ navBarItem "/" "Home"
+                , navBarItem "/blog" "Blog"
+                ]
+            ]
         ]
-        , button [ onClick Increment ] [ text "+" ]
-    ]
+
+
+-- MAIN
+
+
+main : Program () Model Msg
+main =
+  Browser.application
+    { init = init
+    , view = view
+    , update = update
+    , subscriptions = subscriptions
+    , onUrlChange = UrlChanged
+    , onUrlRequest = LinkClicked
+    }
+
 
