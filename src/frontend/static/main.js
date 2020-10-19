@@ -5167,134 +5167,17 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$application = _Browser_application;
-var $author$project$Main$Model = F3(
-	function (key, url, page) {
-		return {key: key, page: page, url: url};
-	});
 var $author$project$Main$NotFound = {$: 'NotFound'};
+var $author$project$Page$Blog$initialModel = {content: 'Blog'};
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Main$init = F3(
-	function (flags, url, key) {
-		return _Utils_Tuple2(
-			A3($author$project$Main$Model, key, url, $author$project$Main$NotFound),
-			$elm$core$Platform$Cmd$none);
-	});
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $author$project$Main$subscriptions = function (_v0) {
-	return $elm$core$Platform$Sub$none;
-};
-var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $author$project$Main$Blog = {$: 'Blog'};
-var $author$project$Main$Home = {$: 'Home'};
-var $elm$url$Url$Parser$Parser = function (a) {
-	return {$: 'Parser', a: a};
-};
+var $author$project$Page$Blog$init = _Utils_Tuple2($author$project$Page$Blog$initialModel, $elm$core$Platform$Cmd$none);
+var $author$project$Page$Home$initialModel = {content: 'HOME'};
+var $author$project$Page$Home$init = _Utils_Tuple2($author$project$Page$Home$initialModel, $elm$core$Platform$Cmd$none);
 var $elm$url$Url$Parser$State = F5(
 	function (visited, unvisited, params, frag, value) {
 		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
 	});
-var $elm$url$Url$Parser$mapState = F2(
-	function (func, _v0) {
-		var visited = _v0.visited;
-		var unvisited = _v0.unvisited;
-		var params = _v0.params;
-		var frag = _v0.frag;
-		var value = _v0.value;
-		return A5(
-			$elm$url$Url$Parser$State,
-			visited,
-			unvisited,
-			params,
-			frag,
-			func(value));
-	});
-var $elm$url$Url$Parser$map = F2(
-	function (subValue, _v0) {
-		var parseArg = _v0.a;
-		return $elm$url$Url$Parser$Parser(
-			function (_v1) {
-				var visited = _v1.visited;
-				var unvisited = _v1.unvisited;
-				var params = _v1.params;
-				var frag = _v1.frag;
-				var value = _v1.value;
-				return A2(
-					$elm$core$List$map,
-					$elm$url$Url$Parser$mapState(value),
-					parseArg(
-						A5($elm$url$Url$Parser$State, visited, unvisited, params, frag, subValue)));
-			});
-	});
-var $elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
-		}
-	});
-var $elm$core$List$concat = function (lists) {
-	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
-};
-var $elm$core$List$concatMap = F2(
-	function (f, list) {
-		return $elm$core$List$concat(
-			A2($elm$core$List$map, f, list));
-	});
-var $elm$url$Url$Parser$oneOf = function (parsers) {
-	return $elm$url$Url$Parser$Parser(
-		function (state) {
-			return A2(
-				$elm$core$List$concatMap,
-				function (_v0) {
-					var parser = _v0.a;
-					return parser(state);
-				},
-				parsers);
-		});
-};
-var $elm$url$Url$Parser$s = function (str) {
-	return $elm$url$Url$Parser$Parser(
-		function (_v0) {
-			var visited = _v0.visited;
-			var unvisited = _v0.unvisited;
-			var params = _v0.params;
-			var frag = _v0.frag;
-			var value = _v0.value;
-			if (!unvisited.b) {
-				return _List_Nil;
-			} else {
-				var next = unvisited.a;
-				var rest = unvisited.b;
-				return _Utils_eq(next, str) ? _List_fromArray(
-					[
-						A5(
-						$elm$url$Url$Parser$State,
-						A2($elm$core$List$cons, next, visited),
-						rest,
-						params,
-						frag,
-						value)
-					]) : _List_Nil;
-			}
-		});
-};
-var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
-	function (state) {
-		return _List_fromArray(
-			[state]);
-	});
-var $author$project$Main$matchRoute = $elm$url$Url$Parser$oneOf(
-	_List_fromArray(
-		[
-			A2($elm$url$Url$Parser$map, $author$project$Main$Home, $elm$url$Url$Parser$top),
-			A2(
-			$elm$url$Url$Parser$map,
-			$author$project$Main$Blog,
-			$elm$url$Url$Parser$s('blog'))
-		]));
 var $elm$url$Url$Parser$getFirstMatch = function (states) {
 	getFirstMatch:
 	while (true) {
@@ -5925,15 +5808,180 @@ var $elm$url$Url$Parser$parse = F2(
 					url.fragment,
 					$elm$core$Basics$identity)));
 	});
-var $author$project$Main$parseUrl = function (url) {
-	var _v0 = A2($elm$url$Url$Parser$parse, $author$project$Main$matchRoute, url);
-	if (_v0.$ === 'Just') {
-		var route = _v0.a;
-		return route;
-	} else {
-		return $author$project$Main$NotFound;
-	}
+var $author$project$Main$Blog = {$: 'Blog'};
+var $author$project$Main$Home = {$: 'Home'};
+var $elm$url$Url$Parser$Parser = function (a) {
+	return {$: 'Parser', a: a};
 };
+var $elm$url$Url$Parser$mapState = F2(
+	function (func, _v0) {
+		var visited = _v0.visited;
+		var unvisited = _v0.unvisited;
+		var params = _v0.params;
+		var frag = _v0.frag;
+		var value = _v0.value;
+		return A5(
+			$elm$url$Url$Parser$State,
+			visited,
+			unvisited,
+			params,
+			frag,
+			func(value));
+	});
+var $elm$url$Url$Parser$map = F2(
+	function (subValue, _v0) {
+		var parseArg = _v0.a;
+		return $elm$url$Url$Parser$Parser(
+			function (_v1) {
+				var visited = _v1.visited;
+				var unvisited = _v1.unvisited;
+				var params = _v1.params;
+				var frag = _v1.frag;
+				var value = _v1.value;
+				return A2(
+					$elm$core$List$map,
+					$elm$url$Url$Parser$mapState(value),
+					parseArg(
+						A5($elm$url$Url$Parser$State, visited, unvisited, params, frag, subValue)));
+			});
+	});
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
+var $elm$core$List$concatMap = F2(
+	function (f, list) {
+		return $elm$core$List$concat(
+			A2($elm$core$List$map, f, list));
+	});
+var $elm$url$Url$Parser$oneOf = function (parsers) {
+	return $elm$url$Url$Parser$Parser(
+		function (state) {
+			return A2(
+				$elm$core$List$concatMap,
+				function (_v0) {
+					var parser = _v0.a;
+					return parser(state);
+				},
+				parsers);
+		});
+};
+var $elm$url$Url$Parser$s = function (str) {
+	return $elm$url$Url$Parser$Parser(
+		function (_v0) {
+			var visited = _v0.visited;
+			var unvisited = _v0.unvisited;
+			var params = _v0.params;
+			var frag = _v0.frag;
+			var value = _v0.value;
+			if (!unvisited.b) {
+				return _List_Nil;
+			} else {
+				var next = unvisited.a;
+				var rest = unvisited.b;
+				return _Utils_eq(next, str) ? _List_fromArray(
+					[
+						A5(
+						$elm$url$Url$Parser$State,
+						A2($elm$core$List$cons, next, visited),
+						rest,
+						params,
+						frag,
+						value)
+					]) : _List_Nil;
+			}
+		});
+};
+var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
+	function (state) {
+		return _List_fromArray(
+			[state]);
+	});
+var $author$project$Main$parser = $elm$url$Url$Parser$oneOf(
+	_List_fromArray(
+		[
+			A2($elm$url$Url$Parser$map, $author$project$Main$Home, $elm$url$Url$Parser$top),
+			A2(
+			$elm$url$Url$Parser$map,
+			$author$project$Main$Blog,
+			$elm$url$Url$Parser$s('blog'))
+		]));
+var $author$project$Main$BlogPage = function (a) {
+	return {$: 'BlogPage', a: a};
+};
+var $author$project$Main$GotBlogMsg = function (a) {
+	return {$: 'GotBlogMsg', a: a};
+};
+var $elm$core$Platform$Cmd$map = _Platform_map;
+var $author$project$Main$toBlog = F2(
+	function (model, _v0) {
+		var blog = _v0.a;
+		var cmd = _v0.b;
+		return _Utils_Tuple2(
+			_Utils_update(
+				model,
+				{
+					page: $author$project$Main$BlogPage(blog)
+				}),
+			A2($elm$core$Platform$Cmd$map, $author$project$Main$GotBlogMsg, cmd));
+	});
+var $author$project$Main$GotHomeMsg = function (a) {
+	return {$: 'GotHomeMsg', a: a};
+};
+var $author$project$Main$HomePage = function (a) {
+	return {$: 'HomePage', a: a};
+};
+var $author$project$Main$toHome = F2(
+	function (model, _v0) {
+		var home = _v0.a;
+		var cmd = _v0.b;
+		return _Utils_Tuple2(
+			_Utils_update(
+				model,
+				{
+					page: $author$project$Main$HomePage(home)
+				}),
+			A2($elm$core$Platform$Cmd$map, $author$project$Main$GotHomeMsg, cmd));
+	});
+var $author$project$Main$updateUrl = F2(
+	function (url, model) {
+		var _v0 = A2($elm$url$Url$Parser$parse, $author$project$Main$parser, url);
+		if (_v0.$ === 'Just') {
+			if (_v0.a.$ === 'Home') {
+				var _v1 = _v0.a;
+				return A2($author$project$Main$toHome, model, $author$project$Page$Home$init);
+			} else {
+				var _v2 = _v0.a;
+				return A2($author$project$Main$toBlog, model, $author$project$Page$Blog$init);
+			}
+		} else {
+			return _Utils_Tuple2(
+				_Utils_update(
+					model,
+					{page: $author$project$Main$NotFound}),
+				$elm$core$Platform$Cmd$none);
+		}
+	});
+var $author$project$Main$init = F3(
+	function (flags, url, key) {
+		return A2(
+			$author$project$Main$updateUrl,
+			url,
+			{key: key, page: $author$project$Main$NotFound});
+	});
+var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $author$project$Main$subscriptions = function (_v0) {
+	return $elm$core$Platform$Sub$none;
+};
+var $elm$browser$Browser$Navigation$load = _Browser_load;
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
 var $elm$url$Url$addPort = F2(
 	function (maybePort, starter) {
@@ -5979,37 +6027,73 @@ var $elm$url$Url$toString = function (url) {
 					_Utils_ap(http, url.host)),
 				url.path)));
 };
+var $author$project$Page$Blog$update = F2(
+	function (msg, model) {
+		return _Utils_Tuple2(
+			_Utils_update(
+				model,
+				{content: 'Clicked'}),
+			$elm$core$Platform$Cmd$none);
+	});
+var $author$project$Page$Home$update = F2(
+	function (msg, model) {
+		return _Utils_Tuple2(
+			_Utils_update(
+				model,
+				{content: 'Clicked'}),
+			$elm$core$Platform$Cmd$none);
+	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
-		if (msg.$ === 'LinkClicked') {
-			var urlRequest = msg.a;
-			if (urlRequest.$ === 'Internal') {
-				var url = urlRequest.a;
-				return _Utils_Tuple2(
-					_Utils_update(
+		switch (msg.$) {
+			case 'LinkClicked':
+				var urlRequest = msg.a;
+				if (urlRequest.$ === 'Internal') {
+					var url = urlRequest.a;
+					return _Utils_Tuple2(
 						model,
-						{
-							page: $author$project$Main$parseUrl(url)
-						}),
-					A2(
-						$elm$browser$Browser$Navigation$pushUrl,
-						model.key,
-						$elm$url$Url$toString(url)));
-			} else {
-				var href = urlRequest.a;
-				return _Utils_Tuple2(
-					model,
-					$elm$browser$Browser$Navigation$load(href));
-			}
-		} else {
-			var url = msg.a;
-			return _Utils_Tuple2(
-				_Utils_update(
-					model,
-					{url: url}),
-				$elm$core$Platform$Cmd$none);
+						A2(
+							$elm$browser$Browser$Navigation$pushUrl,
+							model.key,
+							$elm$url$Url$toString(url)));
+				} else {
+					var href = urlRequest.a;
+					return _Utils_Tuple2(
+						model,
+						$elm$browser$Browser$Navigation$load(href));
+				}
+			case 'UrlChanged':
+				var url = msg.a;
+				return A2($author$project$Main$updateUrl, url, model);
+			case 'GotHomeMsg':
+				var homeMsg = msg.a;
+				var _v2 = model.page;
+				if (_v2.$ === 'HomePage') {
+					var home = _v2.a;
+					return A2(
+						$author$project$Main$toHome,
+						model,
+						A2($author$project$Page$Home$update, homeMsg, home));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			default:
+				var blogMsg = msg.a;
+				var _v3 = model.page;
+				if (_v3.$ === 'BlogPage') {
+					var blog = _v3.a;
+					return A2(
+						$author$project$Main$toBlog,
+						model,
+						A2($author$project$Page$Blog$update, blogMsg, blog));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 		}
 	});
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
+var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -6045,154 +6129,180 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 				$elm$core$Tuple$first,
 				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
 };
-var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
-var $elm$html$Html$nav = _VirtualDom_node('nav');
+var $author$project$Main$isActive = function (_v0) {
+	var link = _v0.link;
+	var page = _v0.page;
+	var _v1 = _Utils_Tuple2(link, page);
+	if (_v1.a.$ === 'Home') {
+		if (_v1.b.$ === 'HomePage') {
+			var _v2 = _v1.a;
+			return true;
+		} else {
+			var _v3 = _v1.a;
+			return false;
+		}
+	} else {
+		if (_v1.b.$ === 'BlogPage') {
+			var _v4 = _v1.a;
+			return true;
+		} else {
+			var _v5 = _v1.a;
+			return false;
+		}
+	}
+};
 var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$html$Html$nav = _VirtualDom_node('nav');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Main$navBarItem = F2(
-	function (path, name) {
-		return A2(
-			$elm$html$Html$li,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('nav-item')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$href(path),
-							$elm$html$Html$Attributes$class('nav-link')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(name)
-						]))
-				]));
-	});
 var $elm$html$Html$ul = _VirtualDom_node('ul');
-var $author$project$Main$navbarView = A2(
-	$elm$html$Html$nav,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$classList(
-			_List_fromArray(
-				[
-					_Utils_Tuple2('navbar', true),
-					_Utils_Tuple2('navbar-expand-sm', true),
-					_Utils_Tuple2('navbar-light', true),
-					_Utils_Tuple2('bg-light', true)
-				]))
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$a,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('navbar-brand'),
-					$elm$html$Html$Attributes$href('/')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Navbar')
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('collapse'),
-					$elm$html$Html$Attributes$class('navbar-collapse')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$ul,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('navbar-nav'),
-							$elm$html$Html$Attributes$class('mr-auto')
-						]),
-					_List_fromArray(
-						[
-							A2($author$project$Main$navBarItem, '/', 'Home'),
-							A2($author$project$Main$navBarItem, '/blog', 'Blog')
-						]))
-				]))
-		]));
-var $author$project$Main$viewLink = function (path) {
-	return A2(
-		$elm$html$Html$li,
-		_List_Nil,
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$a,
+var $author$project$Main$navbarView = function (page) {
+	var navBarItem = F2(
+		function (route, _v0) {
+			var url = _v0.url;
+			var caption = _v0.caption;
+			return A2(
+				$elm$html$Html$li,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$href(path)
+						$elm$html$Html$Attributes$class('nav-item')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text(path)
-					]))
+						A2(
+						$elm$html$Html$a,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$href(url),
+								$elm$html$Html$Attributes$classList(
+								_List_fromArray(
+									[
+										_Utils_Tuple2('nav-link', true),
+										_Utils_Tuple2(
+										'active',
+										$author$project$Main$isActive(
+											{link: route, page: page}))
+									]))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(caption)
+							]))
+					]));
+		});
+	var logo = A2(
+		$elm$html$Html$a,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('navbar-brand'),
+				$elm$html$Html$Attributes$href('/')
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('Navbar')
 			]));
-};
-var $author$project$Main$blogView = A2(
-	$elm$html$Html$div,
-	_List_Nil,
-	_List_fromArray(
+	var links = _List_fromArray(
 		[
-			$elm$html$Html$text('This is Blog')
-		]));
-var $author$project$Main$homeView = A2(
-	$elm$html$Html$div,
-	_List_Nil,
-	_List_fromArray(
-		[
-			$elm$html$Html$text('This is home')
-		]));
-var $author$project$Main$viewer = function (page) {
-	switch (page.$) {
-		case 'NotFound':
-			return A2(
-				$elm$html$Html$div,
-				_List_Nil,
+			A2(
+			$elm$html$Html$ul,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('navbar-nav'),
+					$elm$html$Html$Attributes$class('mr-auto')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					navBarItem,
+					$author$project$Main$Home,
+					{caption: 'Home', url: '/'}),
+					A2(
+					navBarItem,
+					$author$project$Main$Blog,
+					{caption: 'Blog', url: '/blog'})
+				]))
+		]);
+	return A2(
+		$elm$html$Html$nav,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$classList(
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Not found')
-					]));
-		case 'Home':
-			return $author$project$Main$homeView;
-		default:
-			return $author$project$Main$blogView;
-	}
+						_Utils_Tuple2('navbar', true),
+						_Utils_Tuple2('navbar-expand-sm', true),
+						_Utils_Tuple2('navbar-light', true),
+						_Utils_Tuple2('bg-light', true)
+					]))
+			]),
+		_List_fromArray(
+			[
+				logo,
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('collapse'),
+						$elm$html$Html$Attributes$class('navbar-collapse')
+					]),
+				links)
+			]));
+};
+var $author$project$Page$Blog$view = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				$elm$html$Html$text('This is Blog')
+			]));
+};
+var $author$project$Page$Home$view = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				$elm$html$Html$text('This is home')
+			]));
 };
 var $author$project$Main$view = function (model) {
+	var content = function () {
+		var _v0 = model.page;
+		switch (_v0.$) {
+			case 'HomePage':
+				var home = _v0.a;
+				return A2(
+					$elm$html$Html$map,
+					$author$project$Main$GotHomeMsg,
+					$author$project$Page$Home$view(home));
+			case 'BlogPage':
+				var blog = _v0.a;
+				return A2(
+					$elm$html$Html$map,
+					$author$project$Main$GotBlogMsg,
+					$author$project$Page$Blog$view(blog));
+			default:
+				return A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Not found')
+						]));
+		}
+	}();
 	return {
 		body: _List_fromArray(
 			[
-				$author$project$Main$navbarView,
-				$elm$html$Html$text('The current URL is: '),
-				$author$project$Main$viewer(model.page),
-				A2(
-				$elm$html$Html$ul,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$author$project$Main$viewLink('/'),
-						$author$project$Main$viewLink('/blog'),
-						$author$project$Main$viewLink('/NotFound')
-					]))
+				$author$project$Main$navbarView(model.page),
+				content
 			]),
 		title: 'URL Interceptor'
 	};

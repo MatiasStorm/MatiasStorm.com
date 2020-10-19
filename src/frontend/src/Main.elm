@@ -3,46 +3,57 @@ import Browser
 import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Page.Home as Home
+import Page.Blog as Blog
 import Url exposing (Url)
 import Url.Parser as Parser exposing(Parser)
+-- import Route exposing (Route)
 
 
 -- Route
-
 type Route
-    = NotFound
-    | Home
+    = Home
     | Blog
 
-matchRoute : Parser (Route -> a) a
-matchRoute =
+
+parser : Parser (Route -> a) a
+parser =
     Parser.oneOf
         [ Parser.map Home Parser.top
         , Parser.map Blog (Parser.s "blog")
         ]
 
-parseUrl : Url -> Route
-parseUrl url =
-    case Parser.parse matchRoute url of
-        Just route ->
-            route
-        Nothing ->
-            NotFound
+
+-- Page
+type Page
+    = NotFound
+    | HomePage Home.Model
+    | BlogPage Home.Model
+
 
 
 -- MODEL
-
-
-type alias Model =
-  { key : Nav.Key
-  , url : Url.Url
-  , page : Route
-  }
+type alias Model = {page: Page, key: Nav.Key}
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-  ( Model key url NotFound, Cmd.none )
+    updateUrl url { page = NotFound, key = key }
+
+
+updateUrl : Url -> Model -> (Model, Cmd Msg)
+updateUrl url model =
+    case Parser.parse parser url of
+        Just Home ->
+            Home.init 
+                |> toHome model
+
+        Just Blog ->
+            Blog.init
+                |> toBlog model
+
+        Nothing ->
+            ( { model | page = NotFound }, Cmd.none )
 
 
 
@@ -52,6 +63,8 @@ init flags url key =
 type Msg
   = LinkClicked Browser.UrlRequest
   | UrlChanged Url.Url
+  | GotHomeMsg Home.Msg
+  | GotBlogMsg Blog.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -60,17 +73,37 @@ update msg model =
     LinkClicked urlRequest ->
       case urlRequest of
         Browser.Internal url ->
-          ( {model | page = parseUrl url}, Nav.pushUrl model.key (Url.toString url) )
+          ( model, Nav.pushUrl model.key (Url.toString url) )
 
         Browser.External href ->
           ( model, Nav.load href )
 
     UrlChanged url ->
-      ( { model | url = url }
-      , Cmd.none
-      )
+        updateUrl url model
 
+    GotHomeMsg homeMsg ->
+        case model.page of
+            HomePage home ->
+                toHome model (Home.update homeMsg home)
+            _ ->
+                (model, Cmd.none)
 
+    GotBlogMsg blogMsg ->
+        case model.page of
+            BlogPage blog ->
+                toBlog model (Blog.update blogMsg blog)
+            _ ->
+                (model, Cmd.none)
+
+toHome : Model -> (Home.Model, Cmd Home.Msg) -> (Model, Cmd Msg)
+toHome model (home, cmd) =
+    ( {model | page = HomePage home}
+    , Cmd.map GotHomeMsg cmd)
+
+toBlog : Model -> (Blog.Model, Cmd Blog.Msg) -> (Model, Cmd Msg)
+toBlog model (blog, cmd) =
+    ( {model | page = BlogPage blog}
+    , Cmd.map GotBlogMsg cmd)
 
 -- SUBSCRIPTIONS
 
@@ -81,68 +114,71 @@ subscriptions _ =
 
 
 
--- VIEW
-viewer : Route -> Html msg
-viewer page =
-    case page of
-        NotFound ->
-            div [] [ text "Not found" ]
-        Home ->
-            homeView
-        Blog ->
-            blogView
 
+-- VIEW
 view : Model -> Browser.Document Msg
 view model =
+    let
+        content =
+            case model.page of
+                HomePage home ->
+                    Home.view home |> Html.map GotHomeMsg
 
-  { title = "URL Interceptor"
-  , body =
-      [ navbarView 
-      , text "The current URL is: "
-      , viewer model.page
-      , ul []
-          [ viewLink "/"
-          , viewLink "/blog"
-          , viewLink "/NotFound"
-          ]
-      ]
-  }
+                BlogPage blog ->
+                    Blog.view blog |> Html.map GotBlogMsg
 
-
-viewLink : String -> Html msg
-viewLink path =
-  li [] [ a [ href path ] [ text path ] ]
-
-
-homeView : Html msg
-homeView =
-    div [] [text "This is home"]
-
-blogView : Html msg
-blogView =
-    div [] [text "This is Blog"]
-
-navBarItem : String -> String -> Html msg
-navBarItem path name =
-    li [ class "nav-item" ] [ a [ href path, class "nav-link" ] [ text name ] ]
+                NotFound ->
+                    div [] [text "Not found"]
+    in
+    { title = "URL Interceptor"
+    , body =
+        [ navbarView model.page 
+        , content
+        ]
+    }
 
 
-navbarView : Html msg
-navbarView =
+
+navbarView : Page -> Html msg
+navbarView page =
+    let 
+        logo = a [class "navbar-brand", href "/"] [text "Navbar"]
+        
+        links = 
+            [ ul [class "navbar-nav", class "mr-auto"] 
+                [ navBarItem Home {url="/", caption="Home" }
+                , navBarItem Blog { url="/blog", caption="Blog" }
+                ]
+            ]
+
+        navBarItem : Route -> {url : String, caption: String} -> Html msg
+        navBarItem route {url, caption} =
+            li [ class "nav-item" ] 
+                [ a [ href url, classList [ ( "nav-link", True ), 
+                                            ("active", isActive { link = route, page = page }) 
+                                        ] 
+                    ] 
+                    [ text caption ] ]
+    in
     nav [ classList [ ("navbar", True)
                     , ("navbar-expand-sm", True)
                     , ("navbar-light", True)
                     , ("bg-light", True)
                     ] 
         ] 
-        [ a [class "navbar-brand", href "/"] [text "Navbar"]
+        [ logo
         , div [class "collapse", class "navbar-collapse"] 
-            [ ul [class "navbar-nav" class "mr-auto"] 
-                [ navBarItem "/" "Home"
-                , navBarItem "/blog" "Blog"
-                ]
-            ]
+            links 
         ]
+
+
+isActive : {link : Route, page : Page} -> Bool
+isActive {link, page} = 
+    case (link, page) of
+        (Home, HomePage _ ) -> True
+        (Home,  _ ) -> False
+        (Blog, BlogPage _ ) -> True
+        (Blog, _ ) -> False
 
 
 -- MAIN
