@@ -28,7 +28,7 @@ parser =
 type Page
     = NotFound
     | HomePage Home.Model
-    | BlogPage Home.Model
+    | BlogPage Blog.Model
 
 
 
@@ -83,26 +83,26 @@ update msg model =
 
     GotHomeMsg homeMsg ->
         case model.page of
-            HomePage home ->
-                toHome model (Home.update homeMsg home)
+            HomePage homeModel ->
+                toHome model (Home.update homeMsg homeModel)
             _ ->
                 (model, Cmd.none)
 
     GotBlogMsg blogMsg ->
         case model.page of
-            BlogPage blog ->
-                toBlog model (Blog.update blogMsg blog)
+            BlogPage blogModel ->
+                toBlog model (Blog.update blogMsg blogModel)
             _ ->
                 (model, Cmd.none)
 
 toHome : Model -> (Home.Model, Cmd Home.Msg) -> (Model, Cmd Msg)
-toHome model (home, cmd) =
-    ( {model | page = HomePage home}
+toHome model (homeModel, cmd) =
+    ( {model | page = HomePage homeModel}
     , Cmd.map GotHomeMsg cmd)
 
 toBlog : Model -> (Blog.Model, Cmd Blog.Msg) -> (Model, Cmd Msg)
-toBlog model (blog, cmd) =
-    ( {model | page = BlogPage blog}
+toBlog model (blogModel, cmd) =
+    ( {model | page = BlogPage blogModel}
     , Cmd.map GotBlogMsg cmd)
 
 -- SUBSCRIPTIONS
