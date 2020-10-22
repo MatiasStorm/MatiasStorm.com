@@ -5,7 +5,7 @@ class PostCategorySerializer (serializers.ModelSerializer):
     class Meta:
         model = models.PostCategory
         fields = [ 
-            "id" 
+            "id" ,
             "category_name",
             "description",
             "created",
@@ -15,7 +15,7 @@ class SerieSerializer (serializers.ModelSerializer):
     class Meta:
         model = models.Serie
         fields = [ 
-            "id" 
+            "id",
             "serie_name",
             "description",
             "created",
@@ -27,8 +27,8 @@ class PostSerializer (serializers.ModelSerializer):
     class Meta:
         model = models.Post
         fields = [ 
-            "id" 
-            "post"
+            "id", 
+            "post",
             "categories",
             "serie",
             "published",
