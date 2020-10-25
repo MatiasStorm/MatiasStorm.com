@@ -142,12 +142,13 @@ view model =
 navbarView : Page -> Html msg
 navbarView page =
     let 
-        logo = a [class "navbar-brand", href "/"] [text "Navbar"]
+        logo = a [class "navbar-brand", href "/"] [text "matiasStorm"]
         
         links = 
             [ ul [class "navbar-nav", class "mr-auto"] 
-                [ navBarItem Home {url="/", caption="Home" }
-                , navBarItem Blog { url="/blog", caption="Blog" }
+                [ 
+                    -- navBarItem Home {url="/", caption="Home" }
+                -- , navBarItem Blog { url="/blog", caption="Blog" }
                 ]
             ]
 

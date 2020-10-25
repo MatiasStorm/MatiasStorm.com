@@ -18,7 +18,7 @@ class Serie (models.Model):
 class Post(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255, null=False, blank=False)
-    image_path = models.URLField(max_length=255)
+    # image_path = models.URLField(max_length=255)
     text = models.TextField(null=False, blank=False)
     categories = models.ManyToManyField(PostCategory, blank=False)
     serie = models.ForeignKey(Serie, on_delete=models.CASCADE, null=True, blank=True)

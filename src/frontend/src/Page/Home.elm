@@ -5,6 +5,9 @@ import Html.Events exposing (onClick)
 import Json.Decode as JD
 import Http
 import Task exposing (Task)
+import Markdown.Parser as Markdown
+import Markdown.Renderer
+import Iso8601
 
 type Msg
     = Click
@@ -22,7 +25,7 @@ type alias PostCategory =
 type alias Post =
     { id: String
     , title: String
-    , post: String
+    , text: String
     , categories : (List String)
     , serie : Maybe String
     , published : Bool
@@ -77,6 +80,7 @@ categoriesDecoder =
 postsDecoder : JD.Decoder (List Post)
 postsDecoder = 
     let
+        postDecoder : JD.Decoder Post
         postDecoder =
             JD.map8 Post
                 (JD.field "id" JD.string)
@@ -140,18 +144,35 @@ view model =
                 renderCategory : PostCategory -> Html Msg
                 renderCategory category =
                     li [] [text category.category_name]
-
-                getBlogPost : String
-                getBlogPost  =
-                    case (List.head model.posts) of
-                        Just post -> post.post
-                        Nothing -> "Nothing"
-
             in
             div [class "container"] (List.map postView model.posts)
 
 postView : Post -> Html Msg
 postView post =
-    div [] 
-        [ h1 [] [text post.title] ]
+    let
+        getCreatedDate = 
+            (Iso8601.toTime post.created)
 
+    in
+    div [class "card my-3"] 
+        [ div [class "card-body"] 
+            [ h1 [class "card-title"] [text post.title] 
+            , span [] [text  getCreatedDate]
+            , case 
+                post.text
+                    |> Markdown.parse
+                    |> Result.mapError deadEndsToString
+                    |> Result.andThen (\ast -> Markdown.Renderer.render Markdown.Renderer.defaultHtmlRenderer ast)
+              of
+                Ok rendered ->
+                    div [] rendered
+
+                Err errors ->
+                    text errors
+            ]
+        ]
+
+deadEndsToString deadEnds =
+    deadEnds
+        |> List.map Markdown.deadEndToString
+        |> String.join "\n"

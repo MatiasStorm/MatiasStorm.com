@@ -30,7 +30,7 @@ class PostSerializer (serializers.ModelSerializer):
             "id", 
             "title",
             "text",
-            "image_path",
+            # "image_path",
             "categories",
             "serie",
             "published",
