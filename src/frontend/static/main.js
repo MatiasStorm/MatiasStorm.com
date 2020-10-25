@@ -5348,6 +5348,10 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Page$Blog$init = _Utils_Tuple2($author$project$Page$Blog$initialModel, $elm$core$Platform$Cmd$none);
 var $author$project$Page$Home$Loading = {$: 'Loading'};
+var $author$project$Page$Home$Model = F3(
+	function (posts, postCategories, status) {
+		return {postCategories: postCategories, posts: posts, status: status};
+	});
 var $author$project$Page$Home$GotCategories = function (a) {
 	return {$: 'GotCategories', a: a};
 };
@@ -6156,12 +6160,61 @@ var $elm$http$Http$get = function (r) {
 	return $elm$http$Http$request(
 		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
+var $author$project$Page$Home$serverUrl = 'http://localhost:8000/api/';
 var $author$project$Page$Home$getBlogCategories = $elm$http$Http$get(
 	{
 		expect: A2($elm$http$Http$expectJson, $author$project$Page$Home$GotCategories, $author$project$Page$Home$categoriesDecoder),
-		url: 'http://localhost:8000/api/post_category/'
+		url: $author$project$Page$Home$serverUrl + 'post_category/'
 	});
-var $author$project$Page$Home$init = _Utils_Tuple2($author$project$Page$Home$Loading, $author$project$Page$Home$getBlogCategories);
+var $author$project$Page$Home$GotPosts = function (a) {
+	return {$: 'GotPosts', a: a};
+};
+var $author$project$Page$Home$Post = F8(
+	function (id, title, post, categories, serie, published, created, updated) {
+		return {categories: categories, created: created, id: id, post: post, published: published, serie: serie, title: title, updated: updated};
+	});
+var $elm$json$Json$Decode$bool = _Json_decodeBool;
+var $elm$json$Json$Decode$map8 = _Json_map8;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $elm$json$Json$Decode$nullable = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
+			]));
+};
+var $author$project$Page$Home$postsDecoder = function () {
+	var postDecoder = A9(
+		$elm$json$Json$Decode$map8,
+		$author$project$Page$Home$Post,
+		A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
+		A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
+		A2($elm$json$Json$Decode$field, 'text', $elm$json$Json$Decode$string),
+		A2(
+			$elm$json$Json$Decode$field,
+			'categories',
+			$elm$json$Json$Decode$list($elm$json$Json$Decode$string)),
+		A2(
+			$elm$json$Json$Decode$field,
+			'serie',
+			$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
+		A2($elm$json$Json$Decode$field, 'published', $elm$json$Json$Decode$bool),
+		A2($elm$json$Json$Decode$field, 'created', $elm$json$Json$Decode$string),
+		A2($elm$json$Json$Decode$field, 'updated', $elm$json$Json$Decode$string));
+	return $elm$json$Json$Decode$list(postDecoder);
+}();
+var $author$project$Page$Home$getBlogPosts = $elm$http$Http$get(
+	{
+		expect: A2($elm$http$Http$expectJson, $author$project$Page$Home$GotPosts, $author$project$Page$Home$postsDecoder),
+		url: $author$project$Page$Home$serverUrl + 'post/'
+	});
+var $author$project$Page$Home$init = _Utils_Tuple2(
+	A3($author$project$Page$Home$Model, _List_Nil, _List_Nil, $author$project$Page$Home$Loading),
+	$elm$core$Platform$Cmd$batch(
+		_List_fromArray(
+			[$author$project$Page$Home$getBlogCategories, $author$project$Page$Home$getBlogPosts])));
 var $elm$url$Url$Parser$State = F5(
 	function (visited, unvisited, params, frag, value) {
 		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
@@ -6509,23 +6562,50 @@ var $author$project$Page$Blog$update = F2(
 			$elm$core$Platform$Cmd$none);
 	});
 var $author$project$Page$Home$Failure = {$: 'Failure'};
-var $author$project$Page$Home$Success = function (a) {
-	return {$: 'Success', a: a};
-};
+var $author$project$Page$Home$Success = {$: 'Success'};
+var $elm$core$Debug$log = _Debug_log;
 var $author$project$Page$Home$update = F2(
 	function (msg, model) {
-		if (msg.$ === 'Click') {
-			return _Utils_Tuple2($author$project$Page$Home$Loading, $elm$core$Platform$Cmd$none);
-		} else {
-			var result = msg.a;
-			if (result.$ === 'Ok') {
-				var categoryList = result.a;
+		var _v0 = A2($elm$core$Debug$log, 'Message', msg);
+		switch (msg.$) {
+			case 'Click':
 				return _Utils_Tuple2(
-					$author$project$Page$Home$Success(categoryList),
+					_Utils_update(
+						model,
+						{status: $author$project$Page$Home$Loading}),
 					$elm$core$Platform$Cmd$none);
-			} else {
-				return _Utils_Tuple2($author$project$Page$Home$Failure, $elm$core$Platform$Cmd$none);
-			}
+			case 'GotCategories':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var categoryList = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{postCategories: categoryList, status: $author$project$Page$Home$Success}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{status: $author$project$Page$Home$Failure}),
+						$elm$core$Platform$Cmd$none);
+				}
+			default:
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var postList = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{posts: postList, status: $author$project$Page$Home$Success}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{status: $author$project$Page$Home$Failure}),
+						$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$update = F2(
@@ -6748,33 +6828,39 @@ var $author$project$Page$Blog$view = function (model) {
 				$elm$html$Html$text('This is Blog')
 			]));
 };
-var $author$project$Page$Home$Click = {$: 'Click'};
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
 };
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $author$project$Page$Home$postView = function (post) {
 	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h1,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(post.title)
+					]))
+			]));
 };
 var $author$project$Page$Home$view = function (model) {
-	switch (model.$) {
+	var _v0 = model.status;
+	switch (_v0.$) {
 		case 'Failure':
 			return $elm$html$Html$text('Cannot load categories');
 		case 'Loading':
 			return $elm$html$Html$text('Loading...');
 		default:
-			var categoryList = model.a;
 			var renderCategory = function (category) {
 				return A2(
 					$elm$html$Html$li,
@@ -6784,32 +6870,22 @@ var $author$project$Page$Home$view = function (model) {
 							$elm$html$Html$text(category.category_name)
 						]));
 			};
+			var getBlogPost = function () {
+				var _v1 = $elm$core$List$head(model.posts);
+				if (_v1.$ === 'Just') {
+					var post = _v1.a;
+					return post.post;
+				} else {
+					return 'Nothing';
+				}
+			}();
 			return A2(
 				$elm$html$Html$div,
-				_List_Nil,
 				_List_fromArray(
 					[
-						A2(
-						$elm$html$Html$div,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick($author$project$Page$Home$Click)
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Click')
-									]))
-							])),
-						A2(
-						$elm$html$Html$div,
-						_List_Nil,
-						A2($elm$core$List$map, renderCategory, categoryList))
-					]));
+						$elm$html$Html$Attributes$class('container')
+					]),
+				A2($elm$core$List$map, $author$project$Page$Home$postView, model.posts));
 	}
 };
 var $author$project$Main$view = function (model) {

@@ -28,7 +28,9 @@ class PostSerializer (serializers.ModelSerializer):
         model = models.Post
         fields = [ 
             "id", 
-            "post",
+            "title",
+            "text",
+            "image_path",
             "categories",
             "serie",
             "published",

@@ -4,6 +4,7 @@ import Html.Attributes exposing(class, classList)
 import Html.Events exposing (onClick)
 import Json.Decode as JD
 import Http
+import Task exposing (Task)
 
 type Msg
     = Click
@@ -20,32 +21,30 @@ type alias PostCategory =
 
 type alias Post =
     { id: String
+    , title: String
     , post: String
     , categories : (List String)
-    , serie : String
+    , serie : Maybe String
     , published : Bool
     , created : String
     , updated : String
     }
 
-type alias PostModel =
-    { posts : (List Post)
-    , postCategories : (List PostCategory)
-    }
-
-type Model 
+type Status
     = Failure
     | Loading
-    | Success (List PostModel)
+    | Success
 
--- initialModel : Model
--- initialModel =
+type alias Model =
+    { posts : (List Post)
+    , postCategories : (List PostCategory)
+    , status : Status
+    }
 
 -- Init
-
 init : (Model, Cmd Msg)
 init =
-    (Loading, getBlogCategories)
+    (Model [] [] Loading, Cmd.batch [getBlogCategories, getBlogPosts]  )
 
 -- API and decoders
 serverUrl : String
@@ -60,7 +59,7 @@ getBlogCategories =
 getBlogPosts : Cmd Msg
 getBlogPosts = 
     Http.get
-        { url = serverUrl ++ "blog_post/"
+        { url = serverUrl ++ "post/"
         , expect = Http.expectJson GotPosts postsDecoder}
 
 categoriesDecoder : JD.Decoder (List PostCategory)
@@ -79,14 +78,15 @@ postsDecoder : JD.Decoder (List Post)
 postsDecoder = 
     let
         postDecoder =
-            JD.map7 Post
+            JD.map8 Post
                 (JD.field "id" JD.string)
-                (JD.field "post" JD.string)
+                (JD.field "title" JD.string)
+                (JD.field "text" JD.string)
                 (JD.field "categories" (JD.list JD.string))
-                (JD.field "serie" JD.string)
+                (JD.field "serie" (JD.nullable JD.string ))
                 (JD.field "published" JD.bool)
                 (JD.field "created" JD.string)
-                (JD.field "update" JD.string)
+                (JD.field "updated" JD.string)
     in
     JD.list postDecoder
 
@@ -94,47 +94,64 @@ postsDecoder =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let 
+        _ = Debug.log "Message" msg
+    in
     case msg of
         Click ->
-            ( Loading, Cmd.none )
+            ( {model | status = Loading}, Cmd.none )
 
         GotCategories result ->
             case result of 
                 Ok categoryList ->
-                    (Success categoryList, Cmd.none)
+                    ( { model 
+                        | postCategories = categoryList
+                        , status = Success 
+                    }, Cmd.none)
 
                 Err _ ->
-                    (Failure, Cmd.none)
+                    ({model | status = Failure}, Cmd.none)
 
         GotPosts result ->
             case result of
                 Ok postList ->
-                    (Success postList, Cmd.none)
+                    ( { model 
+                        | posts = postList
+                        , status = Success 
+                    }, Cmd.none)
 
                 Err _ ->
-                    (Failure, Cmd.none)
+                    ({model | status = Failure}, Cmd.none)
 
 
 -- View
 
 view : Model -> Html Msg
 view model =
-    case model of
+    case model.status of
         Failure ->
             text "Cannot load categories"
 
         Loading ->
             text "Loading..."
 
-        Success categoryList ->
+        Success ->
             let
                 renderCategory : PostCategory -> Html Msg
                 renderCategory category =
                     li [] [text category.category_name]
+
+                getBlogPost : String
+                getBlogPost  =
+                    case (List.head model.posts) of
+                        Just post -> post.post
+                        Nothing -> "Nothing"
+
             in
-            div [] 
-                [ div [] [ button [ onClick Click ] [ text "Click" ] ] 
-                , div [] 
-                    (List.map renderCategory categoryList)
-            ]
+            div [class "container"] (List.map postView model.posts)
+
+postView : Post -> Html Msg
+postView post =
+    div [] 
+        [ h1 [] [text post.title] ]
 
