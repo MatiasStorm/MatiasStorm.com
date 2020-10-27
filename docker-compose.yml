@@ -25,6 +25,7 @@ services:
         restart: always
         environment:
             - "SECRET_KEY=m^0#ev__b1w4on8io73tw88iex(ft(!ry2-n$$!nx8*0l1-v8^b" # Dummy secret key used in development
+            - "DJANGO_DEBUB=True"
         container_name: django
         networks:
             - default

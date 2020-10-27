@@ -1,3 +1,7 @@
+# Server related
+connect_to_server.sh
+copy_to_server.sh
+src/core/settings_prod.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

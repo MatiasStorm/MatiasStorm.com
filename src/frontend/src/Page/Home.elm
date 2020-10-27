@@ -8,6 +8,8 @@ import Task exposing (Task)
 import Markdown.Parser as Markdown
 import Markdown.Renderer
 import Iso8601
+import DateFormat
+import Time
 
 type Msg
     = Click
@@ -51,7 +53,7 @@ init =
 
 -- API and decoders
 serverUrl : String
-serverUrl = "http://localhost:8000/api/"
+serverUrl = "https://matiasstorm.com/api/"
 
 getBlogCategories : Cmd Msg
 getBlogCategories =
@@ -130,6 +132,17 @@ update msg model =
 
 -- View
 
+ourFormatter : Time.Zone -> Time.Posix -> String
+ourFormatter =
+    DateFormat.format
+        [ DateFormat.monthNameFull
+        , DateFormat.text " "
+        , DateFormat.dayOfMonthSuffix
+        , DateFormat.text ", "
+        , DateFormat.yearNumber
+        ]
+
+
 view : Model -> Html Msg
 view model =
     case model.status of
@@ -150,14 +163,21 @@ view model =
 postView : Post -> Html Msg
 postView post =
     let
-        getCreatedDate = 
-            (Iso8601.toTime post.created)
-
+        formatDate : String -> String
+        formatDate date = 
+            case Iso8601.toTime date of
+                Ok time ->
+                    ourFormatter Time.utc time
+                Err error->
+                    "No created time"
     in
+
     div [class "card my-3"] 
         [ div [class "card-body"] 
-            [ h1 [class "card-title"] [text post.title] 
-            , span [] [text  getCreatedDate]
+            [ h1 [class "card-title mb-0"] [text post.title] 
+            , span [class "text-secondary"] [text ( formatDate post.created)]
+            -- , br [] []
+            -- , span [class "text-secondary"] [text ( "Updated: " ++  formatDate post.updated)]
             , case 
                 post.text
                     |> Markdown.parse

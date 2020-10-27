@@ -1,7 +1,7 @@
-django
-djangorestframework
-mysqlclient
+django==2.1
+djangorestframework==3.11.1
 uuid
-djangorestframework-simplejwt
+djangorestframework-simplejwt==4.3.0
 timedelta
-django-cors-headers
+django-cors-headers==3.4.0
+pymysql

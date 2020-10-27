@@ -24,7 +24,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ["SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get( "DJANGO_DEBUG", "" ) != "False"
 
 ALLOWED_HOSTS = ["*"]
 
@@ -81,10 +81,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'download_assistant',
-        'USER': 'root',
-        'PASSWORD': 'password',
-        'HOST': 'mariadb',
+        'NAME': os.environ.get("DB_NAME", "blog"),
+        'USER': os.environ.get("DB_USER", "root"),
+        'PASSWORD': os.environ.get("DB_PASS", "password"),
+        'HOST': os.environ.get("DB_HOST", "mariadb"),
         'PORT': '3306'
     }
 }
