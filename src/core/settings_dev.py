@@ -81,10 +81,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get("DB_NAME", "blog"),
-        'USER': os.environ.get("DB_USER", "root"),
-        'PASSWORD': os.environ.get("DB_PASS", "password"),
-        'HOST': os.environ.get("DB_HOST", "mariadb"),
+        'NAME': "blog",
+        'USER': "root",
+        'PASSWORD': "password",
+        'HOST': "mariadb",
         'PORT': '3306'
     }
 }

@@ -5,8 +5,7 @@ import Html.Events exposing (onClick)
 import Json.Decode as JD
 import Http
 import Task exposing (Task)
-import Markdown.Parser as Markdown
-import Markdown.Renderer
+import Views.MarkdownView exposing (renderMarkdown)
 import Iso8601
 import DateFormat
 import Time
@@ -53,7 +52,8 @@ init =
 
 -- API and decoders
 serverUrl : String
-serverUrl = "https://matiasstorm.com/api/"
+serverUrl = "http://localhost:8000/api/"
+-- serverUrl = "https://matiasstorm.com/api/"
 
 getBlogCategories : Cmd Msg
 getBlogCategories =
@@ -176,14 +176,7 @@ postView post =
         [ div [class "card-body"] 
             [ h1 [class "card-title mb-0"] [text post.title] 
             , span [class "text-secondary"] [text ( formatDate post.created)]
-            -- , br [] []
-            -- , span [class "text-secondary"] [text ( "Updated: " ++  formatDate post.updated)]
-            , case 
-                post.text
-                    |> Markdown.parse
-                    |> Result.mapError deadEndsToString
-                    |> Result.andThen (\ast -> Markdown.Renderer.render Markdown.Renderer.defaultHtmlRenderer ast)
-              of
+            , case (renderMarkdown post.text) of
                 Ok rendered ->
                     div [] rendered
 
@@ -192,7 +185,3 @@ postView post =
             ]
         ]
 
-deadEndsToString deadEnds =
-    deadEnds
-        |> List.map Markdown.deadEndToString
-        |> String.join "\n"
