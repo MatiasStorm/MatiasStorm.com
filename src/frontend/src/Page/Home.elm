@@ -20,7 +20,6 @@ type Msg
     | GotCategories (Result Http.Error (List PostCategory))
 
 -- Model
-
 type Status
     = Failure
     | Loading
