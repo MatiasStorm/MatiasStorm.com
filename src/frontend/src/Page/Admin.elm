@@ -14,10 +14,15 @@ type Status
     | Loading
     | Success
 
+type Login 
+    = Authorized
+    | Unauthorized
+
 type alias Model =
     { posts : (List Post)
     , postCategories : (List PostCategory)
     , status : Status
+    , login : Login
     }
 
 -- Update
@@ -54,7 +59,7 @@ update msg model =
 -- Init
 init : (Model, Cmd Msg)
 init =
-    (Model [] [] Loading, Cmd.batch [getBlogCategories GotCategories, getBlogPosts GotPosts ]  )
+    (Model [] [] Loading Unauthorized, Cmd.batch [getBlogCategories GotCategories, getBlogPosts GotPosts ]  )
 
 view : Model -> Html msg
 view model =
@@ -65,7 +70,6 @@ view model =
     div [ Attr.class "container" ] 
         [ editPostView {model = model, post = Nothing}
         ]
-
 
 editPostView : {model: Model, post: Maybe Post} -> Html msg
 editPostView {model, post} =
@@ -103,3 +107,6 @@ editPostView {model, post} =
         , button [ Attr.class "btn btn-primary" ] [ text "Post" ]
         ]
 
+postTableView : Model -> Html msg
+postTableView model =
+    div
