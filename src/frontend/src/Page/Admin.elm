@@ -4,14 +4,13 @@ import Api exposing (PostCategory, Post, getBlogCategories, getBlogPosts)
 import Html.Attributes as Attr
 import Http
 import Html.Events exposing (onClick)
+import Html.Events exposing (onInput)
+import Html.Events exposing (onCheck)
+import Multiselect
 
-type alias NewPost = 
-    { title: String
-    , text: String
-    , categories : (List String)
-    , serie : Maybe String
-    , published : Bool
-    }
+-- subscriptions : Model -> Sub Msg
+-- subscriptions model =
+--     Sub.map Categories <| Multiselect.subscriptions categories
 
 type Msg
     = GotPosts (Result Http.Error (List Post))
@@ -19,7 +18,10 @@ type Msg
     | SetShowNewPost Bool
     | SetEditingPost Post
     | SetShowEditingPost Bool
-
+    | Title PostType String
+    | Text PostType String
+    | Categories PostType Multiselect.Msg
+    | Published PostType Bool
 
 -- Model
 type Status
@@ -31,12 +33,31 @@ type Login
     = Authorized
     | Unauthorized
 
+type PostType
+    = ExistingPost
+    | NewPost
 
 -- Update
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let 
-        _ = Debug.log "Message" msg
+        _ = Debug.log "Message" model
+
+        updateTitle : Post -> String -> Post
+        updateTitle post title = { post | title = title }
+
+        updateText : Post -> String -> Post
+        updateText post text = { post | text = text }
+        
+        updateCategories : Post -> String -> Post
+        updateCategories post categoryId =
+            if List.any (\cId -> cId == categoryId) post.categories then
+                { post | categories = List.filter (\cId -> cId /= categoryId ) post.categories }
+            else
+                { post | categories = categoryId :: post.categories}
+
+        updatePublished : Post -> Bool -> Post 
+        updatePublished post published = {post | published = published}
     in
     case msg of
         GotCategories result ->
@@ -62,14 +83,41 @@ update msg model =
                     ({model | status = Failure}, Cmd.none)
 
         SetShowNewPost bool ->
-            ({model | showNewPost = bool, showEditingPost = False}, Cmd.none)
+            ({model | showNewPost = bool, showExistingPost = False}, Cmd.none)
 
         SetEditingPost post ->
-            ({model | editingPost = post, showEditingPost = True}, Cmd.none)
+            ({model | existingPost = post, showExistingPost = True}, Cmd.none)
 
         SetShowEditingPost bool ->
-            ({model | showEditingPost = bool, showNewPost = False}, Cmd.none)
+            ({model | showExistingPost = bool, showNewPost = False}, Cmd.none)
 
+        Title postType title ->
+            case postType of
+                NewPost ->
+                    ( { model | newPost = updateTitle model.newPost title}, Cmd.none )
+
+                ExistingPost ->
+                    ( { model | existingPost = updateTitle model.existingPost title}, Cmd.none )
+
+        Text postType text ->
+            case postType of
+                NewPost ->
+                    ( { model | newPost = updateText model.newPost text}, Cmd.none )
+
+                ExistingPost ->
+                    ( { model | existingPost = updateText model.existingPost text}, Cmd.none )
+
+        Categories postType multiSelectMsg ->
+            (model, Cmd.none)
+
+
+        Published postType published ->
+            case postType of
+                NewPost ->
+                    ( { model | newPost = updatePublished model.newPost published}, Cmd.none )
+
+                ExistingPost ->
+                    ( { model | existingPost = updatePublished model.existingPost published}, Cmd.none )
 
 
 -- Model
@@ -81,8 +129,8 @@ type alias Model =
     , login : Login
     , showNewPost : Bool
     , newPost : Post
-    , editingPost : Post
-    , showEditingPost : Bool
+    , existingPost : Post
+    , showExistingPost : Bool
     }
 
 
@@ -107,8 +155,8 @@ initialModel =
     , login = Unauthorized
     , showNewPost = False
     , newPost = initialPost
-    , editingPost = initialPost
-    , showEditingPost = False
+    , existingPost = initialPost
+    , showExistingPost = False
     }
 
 
@@ -142,7 +190,7 @@ view model =
 newPostButtonView : Model -> Html Msg
 newPostButtonView model = 
     htmlIf 
-        ( (not model.showNewPost) && ( not model.showEditingPost )
+        ( (not model.showNewPost) && ( not model.showExistingPost )
         , button 
             [ Attr.class "btn btn-success"
             , onClick (SetShowNewPost True)
@@ -157,36 +205,58 @@ editNewPostView model =
             , post = model.newPost
             , cancelMsg = ( SetShowNewPost False )
             , title = "Your are creating a new post"
+            , titleMsg = Title NewPost
+            , textMsg = Text NewPost
+            , categoryMsg = Categories NewPost
+            , publishMsg = Published NewPost
             }
         )
 
 editExistingPostView : Model -> Html Msg
 editExistingPostView model =
     htmlIf 
-        ( model.showEditingPost 
+        ( model.showExistingPost 
         , editPostView 
             {model = model
-            , post = model.editingPost
+            , post = model.existingPost
             , cancelMsg = ( SetShowEditingPost False )
-            , title = "Your are editing: '" ++ model.editingPost.title ++ "'"
+            , title = "Your are editing: '" ++ model.existingPost.title ++ "'"
+            , titleMsg = Title ExistingPost
+            , textMsg = Text ExistingPost
+            , categoryMsg = Categories ExistingPost
+            , publishMsg = Published ExistingPost
             }
         )
 
 editPostView : 
     { model: Model
+    , title : String
     , post: Post 
     , cancelMsg: Msg
-    , title : String
+    , titleMsg : String -> Msg
+    , textMsg : String -> Msg
+    , categoryMsg : Multiselect.Msg -> Msg
+    , publishMsg : Bool -> Msg
     } -> Html Msg
 editPostView 
     { model
     , post
     , cancelMsg
     , title
+    , titleMsg 
+    , textMsg 
+    , categoryMsg 
+    , publishMsg 
     } =
     let
-        optionView : PostCategory -> Html msg
-        optionView category = option [ Attr.id "postCategories" ] [text category.category_name] 
+        _ = Debug.log "Cat" categories
+
+        categories : List (String, String)
+        categories =
+            List.map (\c -> (c.category_name, c.id)) model.postCategories
+
+        multiSelectModel : Multiselect.Model
+        multiSelectModel = Multiselect.initModel categories "categories"
     in
     div [ Attr.class "col-6" ] 
         [ h2 [] [ text title ]
@@ -197,6 +267,7 @@ editPostView
                     , Attr.placeholder "Post Title"
                     , Attr.id "postTitle"
                     , Attr.value post.title
+                    , onInput titleMsg
                     ] [] 
             ] 
         , div [ Attr.class "form-group" ] 
@@ -206,18 +277,16 @@ editPostView
                 , Attr.style "height" "400px"
                 , Attr.id "postText"
                 , Attr.value post.text 
+                , onInput textMsg
                 ] [] 
             ] 
-        , select [Attr.class "form-control", Attr.multiple True] 
-            ( label [Attr.for "postCategories"] [ text "Post Categories" ] 
-            :: (List.map optionView model.postCategories)
-            )
-            
+        , Html.map categoryMsg <| Multiselect.view multiSelectModel
         , div [ Attr.class "form-check" ] 
             [ input [ Attr.class "form-check-input"
                     , Attr.type_ "checkbox" 
                     , Attr.id "postPublished"
                     , Attr.checked post.published
+                    , onCheck publishMsg
                     ] [] 
             , label [ Attr.for "postPublished"
                     , Attr.class "form-check-label"
@@ -236,9 +305,10 @@ postTableView model =
                 [ h5 [ Attr.class "col-auto" ] [ text post.title ]  
                 , button [ Attr.class "col-auto btn btn-sm btn-secondary", onClick (SetEditingPost post) ] [ text "Edit" ]
                 ]
+
     in
     htmlIf 
-        ( ( not model.showNewPost ) && ( not model.showEditingPost )
+        ( ( not model.showNewPost ) && ( not model.showExistingPost )
         , div [ Attr.class "col-6" ] 
             [ h2 [] [ text "Blog Posts:" ]
             , div [] (List.map postRow model.posts)
