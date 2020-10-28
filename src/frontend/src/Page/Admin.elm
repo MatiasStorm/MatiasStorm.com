@@ -5,10 +5,6 @@ import Html.Attributes as Attr
 import Http
 import Html.Events exposing (onClick)
 
-type EditablePost 
-    = FullPost Post
-    | HalfPost NewPost
-
 type alias NewPost = 
     { title: String
     , text: String
@@ -84,26 +80,15 @@ type alias Model =
     , status : Status
     , login : Login
     , showNewPost : Bool
-    , newPost : NewPost
+    , newPost : Post
     , editingPost : Post
     , showEditingPost : Bool
     }
 
 
 -- Init
-
-initialNewPost : NewPost
-initialNewPost = 
-    { title = ""
-    , text = ""
-    , categories = [""]
-    , published = False
-    , serie = Nothing
-    } 
-
-
-initialEditingPost : Post
-initialEditingPost = 
+initialPost : Post
+initialPost = 
     { id = ""
     , title = ""
     , text = ""
@@ -121,8 +106,8 @@ initialModel =
     , status = Loading
     , login = Unauthorized
     , showNewPost = False
-    , newPost = initialNewPost
-    , editingPost = initialEditingPost
+    , newPost = initialPost
+    , editingPost = initialPost
     , showEditingPost = False
     }
 
@@ -169,7 +154,7 @@ editNewPostView model =
         (model.showNewPost
         , editPostView 
             {model = model
-            , post = HalfPost model.newPost
+            , post = model.newPost
             , cancelMsg = ( SetShowNewPost False )
             , title = "Your are creating a new post"
             }
@@ -181,7 +166,7 @@ editExistingPostView model =
         ( model.showEditingPost 
         , editPostView 
             {model = model
-            , post = FullPost model.editingPost
+            , post = model.editingPost
             , cancelMsg = ( SetShowEditingPost False )
             , title = "Your are editing: '" ++ model.editingPost.title ++ "'"
             }
@@ -189,7 +174,7 @@ editExistingPostView model =
 
 editPostView : 
     { model: Model
-    , post: EditablePost 
+    , post: Post 
     , cancelMsg: Msg
     , title : String
     } -> Html Msg
@@ -211,11 +196,17 @@ editPostView
                     , Attr.type_ "text"
                     , Attr.placeholder "Post Title"
                     , Attr.id "postTitle"
+                    , Attr.value post.title
                     ] [] 
             ] 
         , div [ Attr.class "form-group" ] 
             [ label [Attr.for "postText"] [ text "Post Text" ]
-            , textarea [ Attr.class "form-control", Attr.id "postText"] [] 
+            , textarea 
+                [ Attr.class "form-control"
+                , Attr.style "height" "400px"
+                , Attr.id "postText"
+                , Attr.value post.text 
+                ] [] 
             ] 
         , select [Attr.class "form-control", Attr.multiple True] 
             ( label [Attr.for "postCategories"] [ text "Post Categories" ] 
@@ -226,6 +217,7 @@ editPostView
             [ input [ Attr.class "form-check-input"
                     , Attr.type_ "checkbox" 
                     , Attr.id "postPublished"
+                    , Attr.checked post.published
                     ] [] 
             , label [ Attr.for "postPublished"
                     , Attr.class "form-check-label"
