@@ -106,13 +106,19 @@ view model =
 postView : Post -> Html Msg
 postView post =
     let
-        formatDate : String -> String
+        formatDate : Maybe String -> String
         formatDate date = 
-            case Iso8601.toTime date of
-                Ok time ->
-                    ourFormatter Time.utc time
-                Err error->
-                    "No created time"
+            case date of
+                Just actualDate ->
+                    case Iso8601.toTime actualDate of
+                        Ok time ->
+                            ourFormatter Time.utc time
+
+                        Err error->
+                            "No created time"
+
+                Nothing ->
+                    ""
     in
 
     div [class "card my-3"] 
