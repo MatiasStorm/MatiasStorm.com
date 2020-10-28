@@ -5,6 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Page.Home as Home
 import Page.Blog as Blog
+import Page.Admin as Admin
 import Url exposing (Url)
 import Url.Parser as Parser exposing(Parser)
 -- import Route exposing (Route)
@@ -14,6 +15,7 @@ import Url.Parser as Parser exposing(Parser)
 type Route
     = Home
     | Blog
+    | Admin
 
 
 parser : Parser (Route -> a) a
@@ -21,6 +23,7 @@ parser =
     Parser.oneOf
         [ Parser.map Home Parser.top
         , Parser.map Blog (Parser.s "blog")
+        , Parser.map Admin (Parser.s "admin")
         ]
 
 
@@ -29,6 +32,7 @@ type Page
     = NotFound
     | HomePage Home.Model
     | BlogPage Blog.Model
+    | AdminPage Admin.Model
 
 
 
@@ -52,6 +56,10 @@ updateUrl url model =
             Blog.init
                 |> toBlog model
 
+        Just Admin ->
+            Admin.init
+                |> toAdmin model
+
         Nothing ->
             ( { model | page = NotFound }, Cmd.none )
 
@@ -65,6 +73,7 @@ type Msg
   | UrlChanged Url.Url
   | GotHomeMsg Home.Msg
   | GotBlogMsg Blog.Msg
+  | GotAdminMsg Admin.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -95,6 +104,13 @@ update msg model =
             _ ->
                 (model, Cmd.none)
 
+    GotAdminMsg adminMsg ->
+        case model.page of
+            AdminPage adminModel ->
+                toAdmin model (Admin.update adminMsg adminModel)
+            _ ->
+                (model, Cmd.none)
+
 toHome : Model -> (Home.Model, Cmd Home.Msg) -> (Model, Cmd Msg)
 toHome model (homeModel, cmd) =
     ( {model | page = HomePage homeModel}
@@ -104,6 +120,11 @@ toBlog : Model -> (Blog.Model, Cmd Blog.Msg) -> (Model, Cmd Msg)
 toBlog model (blogModel, cmd) =
     ( {model | page = BlogPage blogModel}
     , Cmd.map GotBlogMsg cmd)
+
+toAdmin : Model -> (Admin.Model, Cmd Admin.Msg) -> (Model, Cmd Msg)
+toAdmin model (blogModel, cmd) =
+    ( {model | page = AdminPage blogModel}
+    , Cmd.map GotAdminMsg cmd)
 
 -- SUBSCRIPTIONS
 
@@ -126,6 +147,9 @@ view model =
 
                 BlogPage blog ->
                     Blog.view blog |> Html.map GotBlogMsg
+
+                AdminPage admin ->
+                    Admin.view admin |> Html.map GotAdminMsg
 
                 NotFound ->
                     div [] [text "Not found"]
@@ -180,6 +204,8 @@ isActive {link, page} =
         (Home,  _ ) -> False
         (Blog, BlogPage _ ) -> True
         (Blog, _ ) -> False
+        (Admin, AdminPage _ ) -> True
+        (Admin, _ ) -> False
 
 
 -- MAIN

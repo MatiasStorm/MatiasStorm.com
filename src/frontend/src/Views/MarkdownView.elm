@@ -62,13 +62,12 @@ getSyntax {language, body} =
 codeBlock : {body: String, language: Maybe String} -> Html.Html msg
 codeBlock { body, language } =
     Html.div [   ]
-        [ SH.useTheme SH.gitHub
-        -- , getSyntax {body = body, language = language}
-        , SH.elm body
-            |> Result.map (SH.highlightLines)
+        [ SH.useTheme SH.gitHub 
+         ,getSyntax {language = language, body = body}
             |> Result.map (SH.toBlockHtml (Just 1))
             |> Result.withDefault
                 (Html.pre [] [ Html.code [] [ Html.text body ]])
+
         ]
 
 renderer : Renderer (Html.Html msg)
