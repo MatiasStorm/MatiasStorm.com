@@ -2,7 +2,7 @@ module Page.Home exposing (view, Model, init, Msg, update)
 import Html exposing (..)
 import Html.Attributes exposing(class, classList)
 import Html.Events exposing (onClick)
-import Json.Decode as JD
+import Api exposing (PostCategory, Post, getBlogCategories, getBlogPosts)
 import Http
 import Task exposing (Task)
 import Views.MarkdownView exposing (renderMarkdown)
@@ -10,29 +10,16 @@ import Iso8601
 import DateFormat
 import Time
 
+
+import SyntaxHighlight as SH
+
+
 type Msg
     = Click
-    | GotCategories (Result Http.Error (List PostCategory))
     | GotPosts (Result Http.Error (List Post))
+    | GotCategories (Result Http.Error (List PostCategory))
 
 -- Model
-type alias PostCategory = 
-    { id : String
-    , category_name : String
-    , description : String
-    , created : String
-    }
-
-type alias Post =
-    { id: String
-    , title: String
-    , text: String
-    , categories : (List String)
-    , serie : Maybe String
-    , published : Bool
-    , created : String
-    , updated : String
-    }
 
 type Status
     = Failure
@@ -48,53 +35,8 @@ type alias Model =
 -- Init
 init : (Model, Cmd Msg)
 init =
-    (Model [] [] Loading, Cmd.batch [getBlogCategories, getBlogPosts]  )
+    (Model [] [] Loading, Cmd.batch [getBlogCategories GotCategories, getBlogPosts GotPosts ]  )
 
--- API and decoders
-serverUrl : String
-serverUrl = "http://localhost:8000/api/"
--- serverUrl = "https://matiasstorm.com/api/"
-
-getBlogCategories : Cmd Msg
-getBlogCategories =
-    Http.get
-        { url = serverUrl ++ "post_category/"
-        , expect = Http.expectJson GotCategories categoriesDecoder}
-
-getBlogPosts : Cmd Msg
-getBlogPosts = 
-    Http.get
-        { url = serverUrl ++ "post/"
-        , expect = Http.expectJson GotPosts postsDecoder}
-
-categoriesDecoder : JD.Decoder (List PostCategory)
-categoriesDecoder =
-    let
-        categoryDecoder =
-            JD.map4 PostCategory
-                (JD.field "id" JD.string)
-                (JD.field "category_name" JD.string)
-                (JD.field "description" JD.string)
-                (JD.field "created" JD.string)
-    in
-    JD.list categoryDecoder
-
-postsDecoder : JD.Decoder (List Post)
-postsDecoder = 
-    let
-        postDecoder : JD.Decoder Post
-        postDecoder =
-            JD.map8 Post
-                (JD.field "id" JD.string)
-                (JD.field "title" JD.string)
-                (JD.field "text" JD.string)
-                (JD.field "categories" (JD.list JD.string))
-                (JD.field "serie" (JD.nullable JD.string ))
-                (JD.field "published" JD.bool)
-                (JD.field "created" JD.string)
-                (JD.field "updated" JD.string)
-    in
-    JD.list postDecoder
 
 -- Update
 
@@ -158,7 +100,9 @@ view model =
                 renderCategory category =
                     li [] [text category.category_name]
             in
-            div [class "container"] (List.map postView model.posts)
+            div [] [
+                div [class "container"] (List.map postView model.posts)
+                ]
 
 postView : Post -> Html Msg
 postView post =
