@@ -117,6 +117,7 @@ mysql/**
 
 # Elm stuff
 src/frontend/elm-stuff/**
+src/frontend/static/main.js
 
 # Ignore Django Migrations in Development if you are working on team
 
