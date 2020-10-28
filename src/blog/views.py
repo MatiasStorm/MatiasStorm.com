@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework.permissions import IsAdminUser, SAFE_METHODS, BasePermission
+from rest_framework.permissions import IsAdminUser, SAFE_METHODS, BasePermission, AllowAny
 from rest_framework import viewsets
 from . import models, serializers
 
@@ -19,6 +19,7 @@ class SerieViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.SerieSerializer
 
 class PostViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAdminUser | ReadOnly]
+    # permission_classes = [IsAdminUser | ReadOnly]
+    permission_classes = [AllowAny]
     queryset = models.Post.objects.all()
     serializer_class = serializers.PostSerializer
