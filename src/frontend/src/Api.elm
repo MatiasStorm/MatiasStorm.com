@@ -12,14 +12,14 @@ type alias PostCategory =
     }
 
 type alias Post =
-    { id: Maybe String
+    { id: String
     , title: String
     , text: String
     , categories : (List String)
     , serie : Maybe String
     , published : Bool
-    , created : Maybe String
-    , updated : Maybe String
+    , created :  String
+    , updated :  String
     }
 
 -- API and decoders
@@ -59,13 +59,13 @@ postsDecoder =
         postDecoder : JD.Decoder Post
         postDecoder =
             JD.map8 Post
-                (JD.field "id" ( JD.nullable JD.string ))
+                (JD.field "id" JD.string)
                 (JD.field "title" JD.string)
                 (JD.field "text" JD.string)
                 (JD.field "categories" (JD.list JD.string))
                 (JD.field "serie" (JD.nullable JD.string ))
                 (JD.field "published" JD.bool)
-                (JD.field "created" ( JD.nullable JD.string ))
-                (JD.field "updated" ( JD.nullable JD.string ))
+                (JD.field "created" JD.string)
+                (JD.field "updated" JD.string)
     in
     JD.list postDecoder
