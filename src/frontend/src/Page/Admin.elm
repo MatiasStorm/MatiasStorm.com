@@ -5,11 +5,24 @@ import Html.Attributes as Attr
 import Http
 import Html.Events exposing (onClick)
 
+type EditablePost 
+    = FullPost Post
+    | HalfPost NewPost
+
+type alias NewPost = 
+    { title: String
+    , text: String
+    , categories : (List String)
+    , serie : Maybe String
+    , published : Bool
+    }
+
 type Msg
     = GotPosts (Result Http.Error (List Post))
     | GotCategories (Result Http.Error (List PostCategory))
-    | ChangeShowNewPost Bool
-    | SetEditingPost (Maybe Post)
+    | SetShowNewPost Bool
+    | SetEditingPost Post
+    | SetShowEditingPost Bool
 
 
 -- Model
@@ -22,23 +35,6 @@ type Login
     = Authorized
     | Unauthorized
 
-type alias NewPost = 
-    { title: String
-    , text: String
-    , categories : (List String)
-    , serie : Maybe String
-    , published : Bool
-    }
-
-type alias Model =
-    { posts : (List Post)
-    , postCategories : (List PostCategory)
-    , status : Status
-    , login : Login
-    , showNewPost : Bool
-    , newPost : NewPost
-    , editingPost : Maybe Post
-    }
 
 -- Update
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,14 +65,33 @@ update msg model =
                 Err _ ->
                     ({model | status = Failure}, Cmd.none)
 
-        ChangeShowNewPost bool ->
-            ({model | showNewPost = bool, editingPost = Nothing}, Cmd.none)
+        SetShowNewPost bool ->
+            ({model | showNewPost = bool, showEditingPost = False}, Cmd.none)
 
         SetEditingPost post ->
-            ({model | editingPost = post, showNewPost = False}, Cmd.none)
+            ({model | editingPost = post, showEditingPost = True}, Cmd.none)
+
+        SetShowEditingPost bool ->
+            ({model | showEditingPost = bool, showNewPost = False}, Cmd.none)
+
+
+
+-- Model
+
+type alias Model =
+    { posts : (List Post)
+    , postCategories : (List PostCategory)
+    , status : Status
+    , login : Login
+    , showNewPost : Bool
+    , newPost : NewPost
+    , editingPost : Post
+    , showEditingPost : Bool
+    }
 
 
 -- Init
+
 initialNewPost : NewPost
 initialNewPost = 
     { title = ""
@@ -84,6 +99,19 @@ initialNewPost =
     , categories = [""]
     , published = False
     , serie = Nothing
+    } 
+
+
+initialEditingPost : Post
+initialEditingPost = 
+    { id = ""
+    , title = ""
+    , text = ""
+    , categories = [""]
+    , published = False
+    , serie = Nothing
+    , created = ""
+    , updated = ""
     } 
 
 initialModel : Model
@@ -94,7 +122,8 @@ initialModel =
     , login = Unauthorized
     , showNewPost = False
     , newPost = initialNewPost
-    , editingPost = Nothing
+    , editingPost = initialEditingPost
+    , showEditingPost = False
     }
 
 
@@ -127,17 +156,12 @@ view model =
 
 newPostButtonView : Model -> Html Msg
 newPostButtonView model = 
-    case model.editingPost of
-        Just _ ->
-            text ""
-
-        Nothing ->
-            htmlIf 
-                ( not model.showNewPost
-                , button 
-                    [ Attr.class "btn btn-success"
-                    , onClick (ChangeShowNewPost True)
-                    ] [ text "New Post" ])
+    htmlIf 
+        ( (not model.showNewPost) && ( not model.showEditingPost )
+        , button 
+            [ Attr.class "btn btn-success"
+            , onClick (SetShowNewPost True)
+            ] [ text "New Post" ])
 
 editNewPostView : Model -> Html Msg
 editNewPostView model =
@@ -145,48 +169,43 @@ editNewPostView model =
         (model.showNewPost
         , editPostView 
             {model = model
-            , post = Nothing
-            , cancelMsg = ( ChangeShowNewPost False )
+            , post = HalfPost model.newPost
+            , cancelMsg = ( SetShowNewPost False )
+            , title = "Your are creating a new post"
             }
         )
 
 editExistingPostView : Model -> Html Msg
 editExistingPostView model =
-    let 
-        renderEdit : Bool
-        renderEdit =
-            case model.editingPost of
-                Just actualEditingPost ->
-                    True
-
-                Nothing ->
-                    False
-    in
     htmlIf 
-        ( renderEdit 
+        ( model.showEditingPost 
         , editPostView 
             {model = model
-            , post = model.editingPost
-            , cancelMsg = ( SetEditingPost Nothing )
+            , post = FullPost model.editingPost
+            , cancelMsg = ( SetShowEditingPost False )
+            , title = "Your are editing: '" ++ model.editingPost.title ++ "'"
             }
         )
 
 editPostView : 
     { model: Model
-    , post: Maybe Post
+    , post: EditablePost 
     , cancelMsg: Msg
+    , title : String
     } -> Html Msg
 editPostView 
     { model
     , post
     , cancelMsg
+    , title
     } =
     let
         optionView : PostCategory -> Html msg
         optionView category = option [ Attr.id "postCategories" ] [text category.category_name] 
     in
     div [ Attr.class "col-6" ] 
-        [ div [ Attr.class "form-group" ] 
+        [ h2 [] [ text title ]
+        , div [ Attr.class "form-group" ] 
             [ label [Attr.for "postTitle"] [ text "Post Title" ]
             , input [ Attr.class "form-control"
                     , Attr.type_ "text"
@@ -223,19 +242,14 @@ postTableView model =
         postRow post =
             div [Attr.class "row border-bottom py-2 border-grey justify-content-between"] 
                 [ h5 [ Attr.class "col-auto" ] [ text post.title ]  
-                , button [ Attr.class "col-auto btn btn-sm btn-secondary", onClick (SetEditingPost (Just post)) ] [ text "Edit" ]
+                , button [ Attr.class "col-auto btn btn-sm btn-secondary", onClick (SetEditingPost post) ] [ text "Edit" ]
                 ]
     in
-    case model.editingPost of
-        Just _ ->
-            text ""
-        
-        Nothing ->
-            htmlIf 
-                ( not model.showNewPost 
-                , div [ Attr.class "col-6" ] 
-                    [ h2 [] [ text "Blog Posts:" ]
-                    , div [] (List.map postRow model.posts)
-                    ]
-                )
+    htmlIf 
+        ( ( not model.showNewPost ) && ( not model.showEditingPost )
+        , div [ Attr.class "col-6" ] 
+            [ h2 [] [ text "Blog Posts:" ]
+            , div [] (List.map postRow model.posts)
+            ]
+        )
 
