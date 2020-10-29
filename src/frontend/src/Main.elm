@@ -122,18 +122,27 @@ toBlog model (blogModel, cmd) =
     , Cmd.map GotBlogMsg cmd)
 
 toAdmin : Model -> (Admin.Model, Cmd Admin.Msg) -> (Model, Cmd Msg)
-toAdmin model (blogModel, cmd) =
-    ( {model | page = AdminPage blogModel}
+toAdmin model (adminModel, cmd) =
+    ( {model | page = AdminPage adminModel}
     , Cmd.map GotAdminMsg cmd)
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-  Sub.none
+subscriptions model =
+    case model.page of
+        AdminPage adminModel ->
+            Sub.map GotAdminMsg <| Admin.subscriptions adminModel
 
+        HomePage adminModel ->
+            Sub.none
 
+        BlogPage adminModel ->
+            Sub.none
+
+        NotFound  ->
+            Sub.none
 
 
 -- VIEW

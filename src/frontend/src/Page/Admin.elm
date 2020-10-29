@@ -1,4 +1,4 @@
-module Page.Admin exposing (view, Model, init, Msg, update)
+module Page.Admin exposing (view, Model, init, Msg, update, subscriptions)
 import Html exposing (..)
 import Api exposing (PostCategory, Post, getBlogCategories, getBlogPosts)
 import Html.Attributes as Attr
@@ -8,20 +8,16 @@ import Html.Events exposing (onInput)
 import Html.Events exposing (onCheck)
 import Multiselect
 
--- subscriptions : Model -> Sub Msg
--- subscriptions model =
---     Sub.map Categories <| Multiselect.subscriptions categories
-
 type Msg
     = GotPosts (Result Http.Error (List Post))
     | GotCategories (Result Http.Error (List PostCategory))
     | SetShowNewPost Bool
     | SetEditingPost Post
     | SetShowEditingPost Bool
-    | Title PostType String
-    | Text PostType String
-    | Categories PostType Multiselect.Msg
-    | Published PostType Bool
+    | Title String
+    | Text String
+    | Categories Multiselect.Msg
+    | Published Bool
 
 -- Model
 type Status
@@ -66,6 +62,7 @@ update msg model =
                     ( { model 
                         | postCategories = categoryList
                         , status = Success 
+                        , postCategoryMultiselectModel = Multiselect.initModel (multiselectCategories categoryList) "categories"
                     }, Cmd.none)
 
                 Err _ ->
@@ -83,42 +80,88 @@ update msg model =
                     ({model | status = Failure}, Cmd.none)
 
         SetShowNewPost bool ->
-            ({model | showNewPost = bool, showExistingPost = False}, Cmd.none)
+            let
+                subModel = Multiselect.populateValues model.postCategoryMultiselectModel (multiselectCategories model.postCategories) []
+            in
+            (
+                { model | showNewPost = bool
+                , showExistingPost = False
+                , postCategoryMultiselectModel = subModel
+                }
+                , Cmd.none
+            )
 
         SetEditingPost post ->
-            ({model | existingPost = post, showExistingPost = True}, Cmd.none)
+            let
+                categories : List (String, String)
+                categories =  multiselectCategories model.postCategories 
+
+                selectedCategories : List (String, String)
+                selectedCategories = multiselectSelectedCategories post model.postCategories
+
+                subModel : Multiselect.Model
+                subModel = 
+                    Multiselect.populateValues model.postCategoryMultiselectModel categories selectedCategories
+            in
+            ( 
+                { model | existingPost = post
+                , showExistingPost = True
+                , postCategoryMultiselectModel = subModel
+                } 
+              , Cmd.none
+            )
 
         SetShowEditingPost bool ->
             ({model | showExistingPost = bool, showNewPost = False}, Cmd.none)
 
-        Title postType title ->
-            case postType of
-                NewPost ->
-                    ( { model | newPost = updateTitle model.newPost title}, Cmd.none )
+        Title title ->
+            if model.showNewPost then
+                ( { model | newPost = updateTitle model.newPost title}, Cmd.none )
+            else if model.showExistingPost then
+                ( { model | existingPost = updateTitle model.existingPost title}, Cmd.none )
+            else
+                (model, Cmd.none)
 
-                ExistingPost ->
-                    ( { model | existingPost = updateTitle model.existingPost title}, Cmd.none )
+        Text text ->
+            if model.showNewPost then
+                ( { model | newPost = updateText model.newPost text}, Cmd.none )
+            else if model.showExistingPost then
+                ( { model | existingPost = updateText model.existingPost text}, Cmd.none )
+            else
+                (model, Cmd.none)
 
-        Text postType text ->
-            case postType of
-                NewPost ->
-                    ( { model | newPost = updateText model.newPost text}, Cmd.none )
-
-                ExistingPost ->
-                    ( { model | existingPost = updateText model.existingPost text}, Cmd.none )
-
-        Categories postType multiSelectMsg ->
-            (model, Cmd.none)
+        Categories multiSelectMsg ->
+            let
+                (subModel, subCmd, _ ) = Multiselect.update multiSelectMsg model.postCategoryMultiselectModel
+            in
+            ({ model | postCategoryMultiselectModel = subModel }, Cmd.map Categories subCmd)
 
 
-        Published postType published ->
-            case postType of
-                NewPost ->
-                    ( { model | newPost = updatePublished model.newPost published}, Cmd.none )
+        Published published ->
+            if model.showNewPost then
+                ( { model | newPost = updatePublished model.newPost published}, Cmd.none )
+            else if model.showExistingPost then
+                ( { model | existingPost = updatePublished model.existingPost published}, Cmd.none )
+            else
+                (model, Cmd.none)
 
-                ExistingPost ->
-                    ( { model | existingPost = updatePublished model.existingPost published}, Cmd.none )
 
+-- Helper
+multiselectCategories : List PostCategory -> List (String, String)
+multiselectCategories categories = List.map (\c -> (c.id, c.category_name)) categories
+
+multiselectSelectedCategories : Post -> List PostCategory -> List (String, String)
+multiselectSelectedCategories post categories = 
+    let 
+        filterById : PostCategory -> Bool
+        filterById category =
+            List.any ( \i -> category.id == i) post.categories
+
+        filteredCategories : List PostCategory
+        filteredCategories =  List.filter filterById categories
+
+    in
+    multiselectCategories filteredCategories
 
 -- Model
 
@@ -131,7 +174,14 @@ type alias Model =
     , newPost : Post
     , existingPost : Post
     , showExistingPost : Bool
+    , postCategoryMultiselectModel : Multiselect.Model
     }
+
+-- Subscriptions
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.map Categories <| Multiselect.subscriptions model.postCategoryMultiselectModel
 
 
 -- Init
@@ -157,12 +207,17 @@ initialModel =
     , newPost = initialPost
     , existingPost = initialPost
     , showExistingPost = False
+    , postCategoryMultiselectModel = Multiselect.initModel [] "categories" 
     }
 
 
 init : (Model, Cmd Msg)
 init =
     (initialModel, Cmd.batch [getBlogCategories GotCategories, getBlogPosts GotPosts ]  )
+
+
+
+-- View 
 
 htmlIf : (Bool, Html msg) -> Html msg
 htmlIf (bool, component) =
@@ -205,10 +260,10 @@ editNewPostView model =
             , post = model.newPost
             , cancelMsg = ( SetShowNewPost False )
             , title = "Your are creating a new post"
-            , titleMsg = Title NewPost
-            , textMsg = Text NewPost
-            , categoryMsg = Categories NewPost
-            , publishMsg = Published NewPost
+            , titleMsg = Title
+            , textMsg = Text
+            , categoryMsg = Categories
+            , publishMsg = Published
             }
         )
 
@@ -221,10 +276,10 @@ editExistingPostView model =
             , post = model.existingPost
             , cancelMsg = ( SetShowEditingPost False )
             , title = "Your are editing: '" ++ model.existingPost.title ++ "'"
-            , titleMsg = Title ExistingPost
-            , textMsg = Text ExistingPost
-            , categoryMsg = Categories ExistingPost
-            , publishMsg = Published ExistingPost
+            , titleMsg = Title
+            , textMsg = Text
+            , categoryMsg = Categories
+            , publishMsg = Published
             }
         )
 
@@ -248,16 +303,6 @@ editPostView
     , categoryMsg 
     , publishMsg 
     } =
-    let
-        _ = Debug.log "Cat" categories
-
-        categories : List (String, String)
-        categories =
-            List.map (\c -> (c.category_name, c.id)) model.postCategories
-
-        multiSelectModel : Multiselect.Model
-        multiSelectModel = Multiselect.initModel categories "categories"
-    in
     div [ Attr.class "col-6" ] 
         [ h2 [] [ text title ]
         , div [ Attr.class "form-group" ] 
@@ -280,7 +325,7 @@ editPostView
                 , onInput textMsg
                 ] [] 
             ] 
-        , Html.map categoryMsg <| Multiselect.view multiSelectModel
+        , Html.map categoryMsg <| Multiselect.view model.postCategoryMultiselectModel
         , div [ Attr.class "form-check" ] 
             [ input [ Attr.class "form-check-input"
                     , Attr.type_ "checkbox" 
