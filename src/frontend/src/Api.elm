@@ -1,4 +1,10 @@
-module Api exposing (getBlogCategories, getBlogPosts, createPost, PostCategory, Post )
+module Api exposing ( getBlogCategories
+                    , getBlogPosts
+                    , createPost
+                    , PostCategory
+                    , Post 
+                    , updatePost
+                    )
 import Html
 import Http
 import Json.Decode as JD
@@ -54,6 +60,17 @@ post url body decoder msg =
         , tracker = Nothing
         }
 
+put : String -> Http.Body -> JD.Decoder a -> ( Result Http.Error a -> msg) -> Cmd msg
+put url body decoder msg =
+    Http.request 
+        { method = "PUT"
+        , url = url 
+        , expect = Http.expectJson msg decoder 
+        , headers = []
+        , body = body
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 -- Get requests
@@ -98,13 +115,21 @@ postsDecoder =
     JD.list postDecoder
 
 
--- Post Requests
+-- Post and PUT Requests
 createPost : Post -> ( Result Http.Error Post -> msg ) -> Cmd msg
 createPost blogPost msg =
     let 
         body = newPostEncoder blogPost
     in
     post (serverUrl ++ "post/") body postDecoder msg
+
+updatePost : Post -> ( Result Http.Error Post -> msg ) -> Cmd msg
+updatePost blogPost msg =
+    let 
+        body = newPostEncoder blogPost
+    in
+    put (serverUrl ++ "post/" ++ blogPost.id ++ "/") body postDecoder msg
+
 
 -- Encoders
 newPostEncoder : Post -> Http.Body

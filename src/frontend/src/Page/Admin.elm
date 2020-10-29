@@ -61,10 +61,6 @@ update msg model =
                 Ok postList ->
                     ( { model 
                         | posts = postList
-                        , showNewPost = False
-                        , showExistingPost = False
-                        , newPost = initialPost
-                        , existingPost = initialPost
                         , status = Success 
                     }, Cmd.none)
 
@@ -72,9 +68,20 @@ update msg model =
                     ({model | status = Failure}, Cmd.none)
 
         GotPost result ->
+            let 
+                updatedPosts : Post -> List Post
+                updatedPosts post =
+                    post :: (List.filter (\p -> p.id /= post.id ) model.posts )
+            in
             case result of
                 Ok post ->
-                    ({model | posts = post :: model.posts}, Cmd.none)
+                    ( { model 
+                        | posts = updatedPosts post
+                        , showNewPost = False
+                        , showExistingPost = False
+                        , newPost = initialPost
+                        , existingPost = initialPost
+                    }, Cmd.none)
 
                 Err _ ->
                     ({ model | status = Failure }, Cmd.none)
@@ -150,7 +157,7 @@ update msg model =
             if model.showNewPost then
                 ({ model | postCategoryMultiselectModel = subModel, newPost = updateCategories model.newPost }, Cmd.map Categories subCmd)
             else if model.showExistingPost then
-                ({ model | postCategoryMultiselectModel = subModel, existingPost = updateCategories model.newPost }, Cmd.map Categories subCmd)
+                ({ model | postCategoryMultiselectModel = subModel, existingPost = updateCategories model.existingPost }, Cmd.map Categories subCmd)
             else
                 (model, Cmd.none)
 
@@ -172,7 +179,7 @@ update msg model =
             (model, Api.createPost model.newPost GotPost )
 
         UpdatePost ->
-            (model, Cmd.none)
+            (model, Api.updatePost model.existingPost GotPost)
 
 
 
