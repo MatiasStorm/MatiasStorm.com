@@ -20,5 +20,15 @@
         var app = Elm.Main.init({
             node: document.getElementById("myapp"),
         });
+
+        app.ports.addToLocalStorage.subscribe( (key, obj) => { 
+            console.log("Storing: ", key, " : ", obj);
+            return window.localStorage.setItem( key, obj );
+        })
+
+        app.ports.getFromLocalStorage.subscribe( key => {
+            console.log("Getting from storage: ", key, window.localStorage.getItem(key));
+            app.ports.storageReciever.send(window.localStorage.getItem(key));
+        } )
     </script>
 </html>

@@ -1,4 +1,4 @@
-module Page.Admin exposing (view, Model, init, Msg, update, subscriptions)
+port module Page.Admin exposing (view, Model, init, Msg, update, subscriptions)
 import Html exposing (..)
 import Api exposing (PostCategory, Post, getBlogCategories, getBlogPosts)
 import Html.Attributes as Attr
@@ -21,6 +21,8 @@ type Msg
     | Published Bool
     | CreatePost
     | UpdatePost
+    | SendToJs String
+
 
 -- Model
 type Status
@@ -36,6 +38,9 @@ type PostType
     = ExistingPost
     | NewPost
 
+-- Ports
+port sendMessage : String -> Cmd msg
+
 -- Update
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -44,6 +49,9 @@ update msg model =
 
     in
     case msg of
+        SendToJs message ->
+            ( model, sendMessage message )
+
         GotCategories result ->
             case result of 
                 Ok categoryList ->
@@ -274,7 +282,8 @@ view model =
 
     in
     div [ Attr.class "container-fluid" ] 
-        [ newPostButtonView model
+        [ button [ onClick (SendToJs "Hello js") ] [text "Send to js"] 
+        , newPostButtonView model
         , editNewPostView model
         , postTableView model
         , editExistingPostView model
