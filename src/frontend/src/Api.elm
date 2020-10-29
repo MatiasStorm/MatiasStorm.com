@@ -3,7 +3,9 @@ module Api exposing ( getBlogCategories
                     , createPost
                     , PostCategory
                     , Post 
+                    , JWT
                     , updatePost
+                    , login
                     )
 import Html
 import Http
@@ -27,6 +29,11 @@ type alias Post =
     , published : Bool
     , created :  String
     , updated :  String
+    }
+
+type alias JWT =
+    { refresh : String
+    , access : String
     }
 
 -- API and decoders
@@ -74,7 +81,6 @@ put url body decoder msg =
 
 
 -- Get requests
-
 getBlogCategories : ( Result Http.Error (List PostCategory) -> msg ) -> Cmd msg
 getBlogCategories msg =
     get (serverUrl ++ "post_category/") categoriesDecoder msg
@@ -115,6 +121,12 @@ postsDecoder =
     JD.list postDecoder
 
 
+jwtDecoder : JD.Decoder JWT
+jwtDecoder =
+    JD.map2 JWT
+        ( JD.field "refresh" JD.string )
+        ( JD.field "access" JD.string )
+
 -- Post and PUT Requests
 createPost : Post -> ( Result Http.Error Post -> msg ) -> Cmd msg
 createPost blogPost msg =
@@ -129,6 +141,16 @@ updatePost blogPost msg =
         body = newPostEncoder blogPost
     in
     put (serverUrl ++ "post/" ++ blogPost.id ++ "/") body postDecoder msg
+
+login : {username : String, password : String} -> ( Result Http.Error JWT -> msg ) -> Cmd msg
+login {username, password} msg = 
+    let
+        body = JE.object 
+                    [ ("username", JE.string username)
+                    , ("password", JE.string password)]
+                |> Http.jsonBody
+    in
+    post (serverUrl ++ "token/obtain/") body jwtDecoder msg
 
 
 -- Encoders

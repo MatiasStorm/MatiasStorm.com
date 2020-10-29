@@ -1,13 +1,16 @@
-module Main exposing(..)
+port module Main exposing(..)
 import Browser
 import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Page.Home as Home
 import Page.Blog as Blog
+import Page.Login as Login
 import Page.Admin as Admin
 import Url exposing (Url)
 import Url.Parser as Parser exposing(Parser)
+import Http
+import Api exposing (JWT)
 -- import Route exposing (Route)
 
 
@@ -16,6 +19,7 @@ type Route
     = Home
     | Blog
     | Admin
+    | Login
 
 
 parser : Parser (Route -> a) a
@@ -24,6 +28,7 @@ parser =
         [ Parser.map Home Parser.top
         , Parser.map Blog (Parser.s "blog")
         , Parser.map Admin (Parser.s "admin")
+        , Parser.map Login (Parser.s "login")
         ]
 
 
@@ -33,6 +38,7 @@ type Page
     | HomePage Home.Model
     | BlogPage Blog.Model
     | AdminPage Admin.Model
+    | LoginPage Login.Model
 
 
 
@@ -60,20 +66,28 @@ updateUrl url model =
             Admin.init
                 |> toAdmin model
 
+        Just Login ->
+            Login.init
+                |> toLogin model
+
         Nothing ->
             ( { model | page = NotFound }, Cmd.none )
 
 
+-- Ports
+port addToLocalStorage : ( String, JWT ) -> Cmd msg 
+port getFromLocalStorage : String -> Cmd msg
+
 
 -- UPDATE
-
-
 type Msg
-  = LinkClicked Browser.UrlRequest
-  | UrlChanged Url.Url
-  | GotHomeMsg Home.Msg
-  | GotBlogMsg Blog.Msg
-  | GotAdminMsg Admin.Msg
+    = LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
+    | GotHomeMsg Home.Msg
+    | GotBlogMsg Blog.Msg
+    | GotAdminMsg Admin.Msg
+    | GotLoginMsg Login.Msg
+    | AddToLocalStorage JWT
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -89,6 +103,29 @@ update msg model =
 
     UrlChanged url ->
         updateUrl url model
+
+    GotLoginMsg loginMsg ->
+        let
+            _ = Debug.log "msg" loginMsg
+        in
+        case model.page of
+            LoginPage loginModel ->
+                case loginMsg of
+                    Login.LoginRecieved result ->
+                        case result of
+                            Ok jwt ->
+                                ( model, addToLocalStorage ( "jwt", jwt ) )
+                            Err _ ->
+                                toLogin model (Login.update loginMsg loginModel)
+
+                    _ ->
+                        toLogin model (Login.update loginMsg loginModel)
+
+            _ ->
+                (model, Cmd.none)
+
+    AddToLocalStorage jwt ->
+        ( model, addToLocalStorage ( "jwt", jwt ) )
 
     GotHomeMsg homeMsg ->
         case model.page of
@@ -126,24 +163,21 @@ toAdmin model (adminModel, cmd) =
     ( {model | page = AdminPage adminModel}
     , Cmd.map GotAdminMsg cmd)
 
+toLogin : Model -> (Login.Model, Cmd Login.Msg) -> (Model, Cmd Msg)
+toLogin model (loginModel, cmd) =
+    ( {model | page = LoginPage loginModel}
+    , Cmd.map GotLoginMsg cmd)
+
+
 -- SUBSCRIPTIONS
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.page of
         AdminPage adminModel ->
             Sub.map GotAdminMsg <| Admin.subscriptions adminModel
 
-        HomePage adminModel ->
+        _ ->
             Sub.none
-
-        BlogPage adminModel ->
-            Sub.none
-
-        NotFound  ->
-            Sub.none
-
 
 -- VIEW
 view : Model -> Browser.Document Msg
@@ -159,6 +193,9 @@ view model =
 
                 AdminPage admin ->
                     Admin.view admin |> Html.map GotAdminMsg
+
+                LoginPage login ->
+                    Login.view login |> Html.map GotLoginMsg
 
                 NotFound ->
                     div [] [text "Not found"]
@@ -179,9 +216,10 @@ navbarView page =
         
         links = 
             [ ul [class "navbar-nav", class "mr-auto"] 
-                [ 
+                [ navBarItem Login { url = "/login", caption = "Login" }
                     -- navBarItem Home {url="/", caption="Home" }
                 -- , navBarItem Blog { url="/blog", caption="Blog" }
+
                 ]
             ]
 
@@ -215,6 +253,8 @@ isActive {link, page} =
         (Blog, _ ) -> False
         (Admin, AdminPage _ ) -> True
         (Admin, _ ) -> False
+        (Login, LoginPage _ ) -> True
+        (Login, _ ) -> False
 
 
 -- MAIN
