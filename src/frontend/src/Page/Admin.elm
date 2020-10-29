@@ -10,6 +10,7 @@ import Multiselect
 
 type Msg
     = GotPosts (Result Http.Error (List Post))
+    | GotPost (Result Http.Error Post)
     | GotCategories (Result Http.Error (List PostCategory))
     | SetShowNewPost Bool
     | SetEditingPost Post
@@ -18,6 +19,8 @@ type Msg
     | Text String
     | Categories Multiselect.Msg
     | Published Bool
+    | CreatePost
+    | UpdatePost
 
 -- Model
 type Status
@@ -39,21 +42,6 @@ update msg model =
     let 
         _ = Debug.log "Message" model
 
-        updateTitle : Post -> String -> Post
-        updateTitle post title = { post | title = title }
-
-        updateText : Post -> String -> Post
-        updateText post text = { post | text = text }
-        
-        updateCategories : Post -> String -> Post
-        updateCategories post categoryId =
-            if List.any (\cId -> cId == categoryId) post.categories then
-                { post | categories = List.filter (\cId -> cId /= categoryId ) post.categories }
-            else
-                { post | categories = categoryId :: post.categories}
-
-        updatePublished : Post -> Bool -> Post 
-        updatePublished post published = {post | published = published}
     in
     case msg of
         GotCategories result ->
@@ -73,11 +61,23 @@ update msg model =
                 Ok postList ->
                     ( { model 
                         | posts = postList
+                        , showNewPost = False
+                        , showExistingPost = False
+                        , newPost = initialPost
+                        , existingPost = initialPost
                         , status = Success 
                     }, Cmd.none)
 
                 Err _ ->
                     ({model | status = Failure}, Cmd.none)
+
+        GotPost result ->
+            case result of
+                Ok post ->
+                    ({model | posts = post :: model.posts}, Cmd.none)
+
+                Err _ ->
+                    ({ model | status = Failure }, Cmd.none)
 
         SetShowNewPost bool ->
             let
@@ -115,35 +115,66 @@ update msg model =
             ({model | showExistingPost = bool, showNewPost = False}, Cmd.none)
 
         Title title ->
+            let
+                updateTitle : Post -> Post
+                updateTitle post = { post | title = title }
+            in
             if model.showNewPost then
-                ( { model | newPost = updateTitle model.newPost title}, Cmd.none )
+                ( { model | newPost = updateTitle model.newPost }, Cmd.none )
             else if model.showExistingPost then
-                ( { model | existingPost = updateTitle model.existingPost title}, Cmd.none )
+                ( { model | existingPost = updateTitle model.existingPost }, Cmd.none )
             else
                 (model, Cmd.none)
 
         Text text ->
+            let
+                updateText : Post -> Post
+                updateText post = { post | text = text }
+            in
             if model.showNewPost then
-                ( { model | newPost = updateText model.newPost text}, Cmd.none )
+                ( { model | newPost = updateText model.newPost }, Cmd.none )
             else if model.showExistingPost then
-                ( { model | existingPost = updateText model.existingPost text}, Cmd.none )
+                ( { model | existingPost = updateText model.existingPost }, Cmd.none )
             else
                 (model, Cmd.none)
 
         Categories multiSelectMsg ->
             let
                 (subModel, subCmd, _ ) = Multiselect.update multiSelectMsg model.postCategoryMultiselectModel
+
+                updateCategories : Post -> Post
+                updateCategories post =
+                    {post | categories = List.map (\(id, name) -> id) ( Multiselect.getSelectedValues model.postCategoryMultiselectModel ) }
+
             in
-            ({ model | postCategoryMultiselectModel = subModel }, Cmd.map Categories subCmd)
-
-
-        Published published ->
             if model.showNewPost then
-                ( { model | newPost = updatePublished model.newPost published}, Cmd.none )
+                ({ model | postCategoryMultiselectModel = subModel, newPost = updateCategories model.newPost }, Cmd.map Categories subCmd)
             else if model.showExistingPost then
-                ( { model | existingPost = updatePublished model.existingPost published}, Cmd.none )
+                ({ model | postCategoryMultiselectModel = subModel, existingPost = updateCategories model.newPost }, Cmd.map Categories subCmd)
             else
                 (model, Cmd.none)
+
+        Published published ->
+            let 
+                updatePublished : Post -> Post 
+                updatePublished post = {post | published = published}
+            in
+            if model.showNewPost then
+                ( { model | newPost = updatePublished model.newPost }, Cmd.none )
+
+            else if model.showExistingPost then
+                ( { model | existingPost = updatePublished model.existingPost }, Cmd.none )
+
+            else
+                (model, Cmd.none)
+
+        CreatePost ->
+            (model, Api.createPost model.newPost GotPost )
+
+        UpdatePost ->
+            (model, Cmd.none)
+
+
 
 
 -- Helper
@@ -259,6 +290,7 @@ editNewPostView model =
             {model = model
             , post = model.newPost
             , cancelMsg = ( SetShowNewPost False )
+            , submitMsg = CreatePost
             , title = "Your are creating a new post"
             , titleMsg = Title
             , textMsg = Text
@@ -275,6 +307,7 @@ editExistingPostView model =
             {model = model
             , post = model.existingPost
             , cancelMsg = ( SetShowEditingPost False )
+            , submitMsg = UpdatePost
             , title = "Your are editing: '" ++ model.existingPost.title ++ "'"
             , titleMsg = Title
             , textMsg = Text
@@ -288,6 +321,7 @@ editPostView :
     , title : String
     , post: Post 
     , cancelMsg: Msg
+    , submitMsg : Msg
     , titleMsg : String -> Msg
     , textMsg : String -> Msg
     , categoryMsg : Multiselect.Msg -> Msg
@@ -297,6 +331,7 @@ editPostView
     { model
     , post
     , cancelMsg
+    , submitMsg
     , title
     , titleMsg 
     , textMsg 
@@ -337,7 +372,7 @@ editPostView
                     , Attr.class "form-check-label"
                     ] [ text "Published" ]
             ]
-        , button [ Attr.class "btn btn-primary"] [ text "Post" ]
+        , button [ Attr.class "btn btn-primary", onClick submitMsg ] [ text "Post" ]
         , button [ Attr.class "btn btn-secondary", onClick cancelMsg ] [ text "Cancel" ]
         ]
 

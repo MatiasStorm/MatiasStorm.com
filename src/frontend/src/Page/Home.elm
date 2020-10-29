@@ -34,7 +34,11 @@ type alias Model =
 -- Init
 init : (Model, Cmd Msg)
 init =
-    (Model [] [] Loading, Cmd.batch [getBlogCategories GotCategories, getBlogPosts GotPosts ]  )
+    (Model [] [] Loading, Cmd.batch 
+                            [ getBlogCategories GotCategories
+                            , getBlogPosts GotPosts
+                            ]  
+    )
 
 
 -- Update
