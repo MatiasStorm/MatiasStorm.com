@@ -175,11 +175,12 @@ update msg model =
                         _ ->
                             (model, Cmd.none)
                 Err _ ->
-                    (model, Cmd.batch 
-                                [ navigateToLogin model.key
-                                , Ports.saveJwt Nothing      -- Delete the saved jwt, if refresh doesn't work.
-                                ])
-
+                    (model
+                    , Cmd.batch 
+                        [ navigateToLogin model.key
+                        , Ports.saveJwt Nothing      -- Delete the saved jwt, if refresh doesn't work.
+                        ]
+                    )
 
 
 toHome : Model -> (Home.Model, Cmd Home.Msg) -> (Model, Cmd Msg)
