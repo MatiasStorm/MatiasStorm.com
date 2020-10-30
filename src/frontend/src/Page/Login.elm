@@ -52,7 +52,7 @@ update msg model =
             let
                 user = {username = model.username, password = model.password}
             in
-            (model, Api.login user LoginRecieved, Nothing )
+            (model, Api.login user LoginRecieved Nothing, Nothing )
 
         Username username ->
             ( { model | username = username }, Cmd.none, Nothing )

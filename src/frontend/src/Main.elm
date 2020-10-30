@@ -35,6 +35,10 @@ parser =
         , Parser.map Login (Parser.s "login")
         ]
 
+navigateToLogin : Nav.Key -> Cmd Msg
+navigateToLogin key =
+    Url.Builder.absolute ["login"] []
+        |> Nav.pushUrl key
 
 -- Page
 type Page
@@ -73,7 +77,7 @@ updateUrl : Url -> Model -> (Model, Cmd Msg)
 updateUrl url model =
     case Parser.parse parser url of
         Just Home ->
-            Home.init 
+            Home.init model.jwt
                 |> toHome model
 
         Just Blog ->
@@ -83,12 +87,11 @@ updateUrl url model =
         Just Admin ->
             case model.jwt of
                 Just jwt ->
-                    Admin.init
+                    Admin.init model.jwt
                         |> toAdmin model
                 Nothing ->
                     ( model
-                    , Url.Builder.absolute ["login"] []
-                        |> Nav.pushUrl model.key
+                    , navigateToLogin model.key
                     )
 
         Just Login ->
@@ -110,6 +113,7 @@ type Msg
     | GotBlogMsg Blog.Msg
     | GotAdminMsg Admin.Msg
     | GotLoginMsg Login.Msg
+    | RefreshToken Admin.Msg (Result Http.Error JWT )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -158,6 +162,25 @@ update msg model =
                 _ ->
                     (model, Cmd.none)
 
+        RefreshToken adminMsg result ->
+            case result of
+                Ok jwt ->
+                    case model.page of
+                        AdminPage adminModel ->
+                            let
+                                (updatedAdminModel, adminCmd, outMsg) = Admin.update adminMsg {adminModel | jwt = Just jwt}
+                            in
+                            ({model | jwt = Just jwt}, Cmd.batch [Cmd.map GotAdminMsg adminCmd, Ports.saveJwt (Just jwt)] )
+
+                        _ ->
+                            (model, Cmd.none)
+                Err _ ->
+                    (model, Cmd.batch 
+                                [ navigateToLogin model.key
+                                , Ports.saveJwt Nothing      -- Delete the saved jwt, if refresh doesn't work.
+                                ])
+
+
 
 toHome : Model -> (Home.Model, Cmd Home.Msg) -> (Model, Cmd Msg)
 toHome model (homeModel, cmd) =
@@ -169,10 +192,27 @@ toBlog model (blogModel, cmd) =
     ( {model | page = BlogPage blogModel}
     , Cmd.map GotBlogMsg cmd)
 
-toAdmin : Model -> (Admin.Model, Cmd Admin.Msg) -> (Model, Cmd Msg)
-toAdmin model (adminModel, cmd) =
-    ( {model | page = AdminPage adminModel}
-    , Cmd.map GotAdminMsg cmd)
+toAdmin : Model -> (Admin.Model, Cmd Admin.Msg, Maybe Admin.OutMsg) -> (Model, Cmd Msg)
+toAdmin model (adminModel, cmd, outMsg) =
+    let 
+        redoRequest : Admin.Msg -> Cmd Msg
+        redoRequest requestMethod =
+            case model.jwt of
+                Just jwt ->
+                    Api.refreshToken jwt ( RefreshToken requestMethod)
+
+                Nothing ->
+                    navigateToLogin model.key
+    in
+    case outMsg of
+        Just ( Admin.FailedRequest requestMethod ) ->
+            ( { model | page = AdminPage adminModel } 
+            , redoRequest requestMethod
+            )
+
+        Nothing ->
+            ( {model | page = AdminPage adminModel}
+            , Cmd.map GotAdminMsg cmd)
 
 toLogin : Model -> (Login.Model, Cmd Login.Msg, Maybe Login.OutMsg) -> (Model, Cmd Msg)
 toLogin model (loginModel, cmd, outMsg) =
@@ -182,7 +222,7 @@ toLogin model (loginModel, cmd, outMsg) =
              , jwt = Just jwt
              }
             , Cmd.batch 
-                [ Ports.saveJwt jwt
+                [ Ports.saveJwt ( Just jwt )
                 , Nav.back model.key 1
                 ]
             )

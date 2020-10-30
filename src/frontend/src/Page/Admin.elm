@@ -1,6 +1,6 @@
-module Page.Admin exposing (view, Model, init, Msg, update, subscriptions)
+module Page.Admin exposing (OutMsg(..), view, Model, init, Msg, update, subscriptions)
 import Html exposing (..)
-import Api exposing (PostCategory, Post, getBlogCategories, getBlogPosts)
+import Api exposing (JWT,PostCategory, Post, getBlogCategories, getBlogPosts, createPost, updatePost)
 import Html.Attributes as Attr
 import Http
 import Html.Events exposing (onClick)
@@ -8,9 +8,11 @@ import Html.Events exposing (onInput)
 import Html.Events exposing (onCheck)
 import Multiselect
 
+-- types
 type Msg
     = GotPosts (Result Http.Error (List Post))
-    | GotPost (Result Http.Error Post)
+    | GotCreatedPost (Result Http.Error Post)
+    | GotUpdatedPost (Result Http.Error Post)
     | GotCategories (Result Http.Error (List PostCategory))
     | SetShowNewPost Bool
     | SetEditingPost Post
@@ -23,18 +25,19 @@ type Msg
     | UpdatePost
 
 
--- Model
 type Status
     = Failure
     | Loading
     | Success
 
+type OutMsg 
+    = FailedRequest Msg 
+
 -- Update
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Maybe OutMsg )
 update msg model =
     let 
         _ = Debug.log "Message" model
-
     in
     case msg of
         GotCategories result ->
@@ -44,10 +47,10 @@ update msg model =
                         | postCategories = categoryList
                         , status = Success 
                         , postCategoryMultiselectModel = Multiselect.initModel (multiselectCategories categoryList) "categories"
-                    }, Cmd.none)
+                    }, Cmd.none, Nothing)
 
                 Err _ ->
-                    ({model | status = Failure}, Cmd.none)
+                    ({model | status = Failure}, Cmd.none, Nothing)
 
         GotPosts result ->
             case result of
@@ -55,12 +58,12 @@ update msg model =
                     ( { model 
                         | posts = postList
                         , status = Success 
-                    }, Cmd.none)
+                    }, Cmd.none, Nothing)
 
                 Err _ ->
-                    ({model | status = Failure}, Cmd.none)
+                    ({model | status = Failure}, Cmd.none, Nothing)
 
-        GotPost result ->
+        GotCreatedPost result ->
             let 
                 updatedPosts : Post -> List Post
                 updatedPosts post =
@@ -74,10 +77,46 @@ update msg model =
                         , showExistingPost = False
                         , newPost = initialPost
                         , existingPost = initialPost
-                    }, Cmd.none)
+                    }, Cmd.none, Nothing)
 
-                Err _ ->
-                    ({ model | status = Failure }, Cmd.none)
+                Err error ->
+                    case error of 
+                        Http.BadStatus status ->
+                            if status == 401 then
+                                ( model
+                                , Cmd.none
+                                , Just (FailedRequest CreatePost))
+                            else
+                                (model, Cmd.none, Nothing)
+                        _  ->
+                            ({model | status = Failure}, Cmd.none, Nothing)
+
+        GotUpdatedPost result ->
+            let 
+                updatedPosts : Post -> List Post
+                updatedPosts post =
+                    post :: (List.filter (\p -> p.id /= post.id ) model.posts )
+            in
+            case result of
+                Ok post ->
+                    ( { model 
+                        | posts = updatedPosts post
+                        , showNewPost = False
+                        , showExistingPost = False
+                        , newPost = initialPost
+                        , existingPost = initialPost
+                    }, Cmd.none, Nothing)
+
+                Err error ->
+                    case error of 
+                        Http.BadStatus status ->
+                            if status == 401 then
+                                (model, Cmd.none, Nothing)
+                            else
+                                (model, Cmd.none, Nothing)
+                        _  ->
+                            ({model | status = Failure}, Cmd.none, Nothing)
+
 
         SetShowNewPost bool ->
             let
@@ -89,6 +128,7 @@ update msg model =
                 , postCategoryMultiselectModel = subModel
                 }
                 , Cmd.none
+                , Nothing
             )
 
         SetEditingPost post ->
@@ -109,10 +149,11 @@ update msg model =
                 , postCategoryMultiselectModel = subModel
                 } 
               , Cmd.none
+              , Nothing
             )
 
         SetShowEditingPost bool ->
-            ({model | showExistingPost = bool, showNewPost = False}, Cmd.none)
+            ({model | showExistingPost = bool, showNewPost = False}, Cmd.none, Nothing)
 
         Title title ->
             let
@@ -120,11 +161,11 @@ update msg model =
                 updateTitle post = { post | title = title }
             in
             if model.showNewPost then
-                ( { model | newPost = updateTitle model.newPost }, Cmd.none )
+                ( { model | newPost = updateTitle model.newPost }, Cmd.none, Nothing)
             else if model.showExistingPost then
-                ( { model | existingPost = updateTitle model.existingPost }, Cmd.none )
+                ( { model | existingPost = updateTitle model.existingPost }, Cmd.none , Nothing)
             else
-                (model, Cmd.none)
+                (model, Cmd.none, Nothing)
 
         Text text ->
             let
@@ -132,11 +173,11 @@ update msg model =
                 updateText post = { post | text = text }
             in
             if model.showNewPost then
-                ( { model | newPost = updateText model.newPost }, Cmd.none )
+                ( { model | newPost = updateText model.newPost }, Cmd.none, Nothing )
             else if model.showExistingPost then
-                ( { model | existingPost = updateText model.existingPost }, Cmd.none )
+                ( { model | existingPost = updateText model.existingPost }, Cmd.none, Nothing )
             else
-                (model, Cmd.none)
+                (model, Cmd.none, Nothing)
 
         Categories multiSelectMsg ->
             let
@@ -148,11 +189,11 @@ update msg model =
 
             in
             if model.showNewPost then
-                ({ model | postCategoryMultiselectModel = subModel, newPost = updateCategories model.newPost }, Cmd.map Categories subCmd)
+                ({ model | postCategoryMultiselectModel = subModel, newPost = updateCategories model.newPost }, Cmd.map Categories subCmd, Nothing)
             else if model.showExistingPost then
-                ({ model | postCategoryMultiselectModel = subModel, existingPost = updateCategories model.existingPost }, Cmd.map Categories subCmd)
+                ({ model | postCategoryMultiselectModel = subModel, existingPost = updateCategories model.existingPost }, Cmd.map Categories subCmd, Nothing)
             else
-                (model, Cmd.none)
+                (model, Cmd.none, Nothing)
 
         Published published ->
             let 
@@ -160,20 +201,19 @@ update msg model =
                 updatePublished post = {post | published = published}
             in
             if model.showNewPost then
-                ( { model | newPost = updatePublished model.newPost }, Cmd.none )
+                ( { model | newPost = updatePublished model.newPost }, Cmd.none, Nothing)
 
             else if model.showExistingPost then
-                ( { model | existingPost = updatePublished model.existingPost }, Cmd.none )
+                ( { model | existingPost = updatePublished model.existingPost }, Cmd.none, Nothing )
 
             else
-                (model, Cmd.none)
+                (model, Cmd.none, Nothing)
 
         CreatePost ->
-            (model, Api.createPost model.newPost GotPost )
+            (model, createPost model.newPost GotCreatedPost model.jwt, Nothing )
 
         UpdatePost ->
-            (model, Api.updatePost model.existingPost GotPost)
-
+            (model, updatePost model.existingPost GotUpdatedPost model.jwt, Nothing)
 
 
 
@@ -205,6 +245,7 @@ type alias Model =
     , existingPost : Post
     , showExistingPost : Bool
     , postCategoryMultiselectModel : Multiselect.Model
+    , jwt: Maybe JWT
     }
 
 -- Subscriptions
@@ -227,8 +268,8 @@ initialPost =
     , updated = ""
     } 
 
-initialModel : Model
-initialModel = 
+initialModel : Maybe JWT -> Model
+initialModel jwt = 
     { posts = []
     , postCategories = []
     , status = Loading
@@ -237,12 +278,19 @@ initialModel =
     , existingPost = initialPost
     , showExistingPost = False
     , postCategoryMultiselectModel = Multiselect.initModel [] "categories" 
+    , jwt = jwt
     }
 
 
-init : (Model, Cmd Msg)
-init =
-    (initialModel, Cmd.batch [getBlogCategories GotCategories, getBlogPosts GotPosts ]  )
+init : Maybe JWT -> (Model, Cmd Msg, Maybe OutMsg)
+init jwt =
+    ( initialModel jwt
+    , Cmd.batch 
+        [ getBlogCategories GotCategories jwt
+        , getBlogPosts GotPosts jwt
+        ]  
+    , Nothing
+    )
 
 
 

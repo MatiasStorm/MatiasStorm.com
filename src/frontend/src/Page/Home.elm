@@ -2,7 +2,7 @@ module Page.Home exposing (view, Model, init, Msg, update)
 import Html exposing (..)
 import Html.Attributes exposing(class, classList)
 import Html.Events exposing (onClick)
-import Api exposing (PostCategory, Post, getBlogCategories, getBlogPosts)
+import Api exposing (JWT, PostCategory, Post, getBlogCategories, getBlogPosts)
 import Http
 import Task exposing (Task)
 import Views.MarkdownView exposing (renderMarkdown)
@@ -29,14 +29,15 @@ type alias Model =
     { posts : (List Post)
     , postCategories : (List PostCategory)
     , status : Status
+    , jwt : Maybe JWT
     }
 
 -- Init
-init : (Model, Cmd Msg)
-init =
-    (Model [] [] Loading, Cmd.batch 
-                            [ getBlogCategories GotCategories
-                            , getBlogPosts GotPosts
+init : Maybe JWT -> (Model, Cmd Msg)
+init jwt =
+    (Model [] [] Loading jwt, Cmd.batch 
+                            [ getBlogCategories GotCategories jwt 
+                            , getBlogPosts GotPosts jwt
                             ]  
     )
 

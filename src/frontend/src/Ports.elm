@@ -7,8 +7,13 @@ import Json.Encode as JE
 port storeJwt : String -> Cmd msg 
 
 
-saveJwt : JWT -> Cmd msg
+saveJwt : Maybe JWT -> Cmd msg
 saveJwt jwt =
-    Api.jwtEncoder jwt
-        |> JE.encode 0
-        |> storeJwt
+    case jwt of
+        Just actualJwt ->
+            Api.jwtEncoder actualJwt
+                |> JE.encode 0
+                |> storeJwt
+                 
+        Nothing ->
+            Cmd.none
