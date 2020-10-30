@@ -1,4 +1,4 @@
-port module Main exposing(..)
+module Main exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Html exposing (..)
@@ -9,8 +9,12 @@ import Page.Login as Login
 import Page.Admin as Admin
 import Url exposing (Url)
 import Url.Parser as Parser exposing(Parser)
+import Url.Builder
 import Http
 import Api exposing (JWT)
+import Json.Encode as JE
+import Json.Decode as JD
+import Ports
 -- import Route exposing (Route)
 
 
@@ -41,15 +45,29 @@ type Page
     | LoginPage Login.Model
 
 
-
 -- MODEL
-type alias Model = {page: Page, key: Nav.Key}
+type alias Model = 
+    { page: Page
+    , key: Nav.Key
+    , jwt : Maybe JWT
+    }
 
+initModel : Nav.Key -> String -> Model
+initModel key flags = 
+    { page = NotFound
+    , key = key
+    , jwt = decodeJwt flags
+    }
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+decodeJwt : String -> Maybe JWT
+decodeJwt jwtJson =
+    case JD.decodeString Api.jwtDecoder jwtJson of
+        Ok jwt -> Just jwt
+        Err _ -> Nothing
+
+init : String -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    updateUrl url { page = NotFound, key = key }
-
+    updateUrl url ( initModel key flags )
 
 updateUrl : Url -> Model -> (Model, Cmd Msg)
 updateUrl url model =
@@ -63,8 +81,15 @@ updateUrl url model =
                 |> toBlog model
 
         Just Admin ->
-            Admin.init
-                |> toAdmin model
+            case model.jwt of
+                Just jwt ->
+                    Admin.init
+                        |> toAdmin model
+                Nothing ->
+                    ( model
+                    , Url.Builder.absolute ["login"] []
+                        |> Nav.pushUrl model.key
+                    )
 
         Just Login ->
             Login.init
@@ -74,9 +99,7 @@ updateUrl url model =
             ( { model | page = NotFound }, Cmd.none )
 
 
--- Ports
-port addToLocalStorage : ( String, JWT ) -> Cmd msg 
-port getFromLocalStorage : String -> Cmd msg
+
 
 
 -- UPDATE
@@ -87,66 +110,54 @@ type Msg
     | GotBlogMsg Blog.Msg
     | GotAdminMsg Admin.Msg
     | GotLoginMsg Login.Msg
-    | AddToLocalStorage JWT
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    LinkClicked urlRequest ->
-      case urlRequest of
-        Browser.Internal url ->
-          ( model, Nav.pushUrl model.key (Url.toString url) )
+    let 
+        _ = Debug.log "msg" msg
+    in
+    case msg of
+        LinkClicked urlRequest ->
+          case urlRequest of
+            Browser.Internal url ->
+              ( model, Nav.pushUrl model.key (Url.toString url) )
 
-        Browser.External href ->
-          ( model, Nav.load href )
+            Browser.External href ->
+              ( model, Nav.load href )
 
-    UrlChanged url ->
-        updateUrl url model
+        UrlChanged url ->
+            updateUrl url model
 
-    GotLoginMsg loginMsg ->
-        let
-            _ = Debug.log "msg" loginMsg
-        in
-        case model.page of
-            LoginPage loginModel ->
-                case loginMsg of
-                    Login.LoginRecieved result ->
-                        case result of
-                            Ok jwt ->
-                                ( model, addToLocalStorage ( "jwt", jwt ) )
-                            Err _ ->
-                                toLogin model (Login.update loginMsg loginModel)
+        GotLoginMsg loginMsg ->
+            case model.page of
+                LoginPage loginModel ->
+                    toLogin model (Login.update loginMsg loginModel)
 
-                    _ ->
-                        toLogin model (Login.update loginMsg loginModel)
+                _ ->
+                    (model, Cmd.none)
 
-            _ ->
-                (model, Cmd.none)
+        GotHomeMsg homeMsg ->
+            case model.page of
+                HomePage homeModel ->
+                    toHome model (Home.update homeMsg homeModel)
+                _ ->
+                    (model, Cmd.none)
 
-    AddToLocalStorage jwt ->
-        ( model, addToLocalStorage ( "jwt", jwt ) )
+        GotBlogMsg blogMsg ->
+            case model.page of
+                BlogPage blogModel ->
+                    toBlog model (Blog.update blogMsg blogModel)
+                _ ->
+                    (model, Cmd.none)
 
-    GotHomeMsg homeMsg ->
-        case model.page of
-            HomePage homeModel ->
-                toHome model (Home.update homeMsg homeModel)
-            _ ->
-                (model, Cmd.none)
+        GotAdminMsg adminMsg ->
+            case model.page of
+                AdminPage adminModel ->
+                    toAdmin model (Admin.update adminMsg adminModel)
+                _ ->
+                    (model, Cmd.none)
 
-    GotBlogMsg blogMsg ->
-        case model.page of
-            BlogPage blogModel ->
-                toBlog model (Blog.update blogMsg blogModel)
-            _ ->
-                (model, Cmd.none)
-
-    GotAdminMsg adminMsg ->
-        case model.page of
-            AdminPage adminModel ->
-                toAdmin model (Admin.update adminMsg adminModel)
-            _ ->
-                (model, Cmd.none)
 
 toHome : Model -> (Home.Model, Cmd Home.Msg) -> (Model, Cmd Msg)
 toHome model (homeModel, cmd) =
@@ -163,21 +174,39 @@ toAdmin model (adminModel, cmd) =
     ( {model | page = AdminPage adminModel}
     , Cmd.map GotAdminMsg cmd)
 
-toLogin : Model -> (Login.Model, Cmd Login.Msg) -> (Model, Cmd Msg)
-toLogin model (loginModel, cmd) =
-    ( {model | page = LoginPage loginModel}
-    , Cmd.map GotLoginMsg cmd)
+toLogin : Model -> (Login.Model, Cmd Login.Msg, Maybe Login.OutMsg) -> (Model, Cmd Msg)
+toLogin model (loginModel, cmd, outMsg) =
+    case outMsg of
+        Just ( Login.LoginSuccess jwt ) ->
+            ({ model | page = LoginPage loginModel
+             , jwt = Just jwt
+             }
+            , Cmd.batch 
+                [ Ports.saveJwt jwt
+                , Nav.back model.key 1
+                ]
+            )
+
+        Nothing ->
+            ( { model | page = LoginPage loginModel }
+            , Cmd.map GotLoginMsg cmd
+            )
 
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.page of
-        AdminPage adminModel ->
-            Sub.map GotAdminMsg <| Admin.subscriptions adminModel
+    let
+        handlePageSubscriptions : Sub Msg
+        handlePageSubscriptions = 
+            case model.page of
+                AdminPage adminModel ->
+                    Sub.map GotAdminMsg <| Admin.subscriptions adminModel
 
-        _ ->
-            Sub.none
+                _ ->
+                    Sub.none
+    in
+    Sub.batch [handlePageSubscriptions]
 
 -- VIEW
 view : Model -> Browser.Document Msg
@@ -199,38 +228,52 @@ view model =
 
                 NotFound ->
                     div [] [text "Not found"]
+
+        loggedIn =
+            case model.jwt of
+                Just jwt -> True
+                Nothing -> False
     in
     { title = "URL Interceptor"
     , body =
-        [ navbarView model.page 
+        [ navbarView model.page loggedIn
         , content
         ]
     }
 
 
 
-navbarView : Page -> Html msg
-navbarView page =
+navbarView : Page -> Bool -> Html msg
+navbarView page loggedIn =
     let 
         logo = a [class "navbar-brand", href "/"] [text "matiasStorm"]
+
+        loggedInLinks = 
+            if loggedIn then
+                [ navBarItem Admin { url = "/admin", caption = "Admin" }
+                , navBarItem Login { url = "/login", caption = "Logout" } 
+                ]
+            else 
+                [ navBarItem Login { url = "/login", caption = "Login" } ]
         
         links = 
             [ ul [class "navbar-nav", class "mr-auto"] 
-                [ navBarItem Login { url = "/login", caption = "Login" }
+                loggedInLinks
                     -- navBarItem Home {url="/", caption="Home" }
                 -- , navBarItem Blog { url="/blog", caption="Blog" }
-
-                ]
             ]
 
         navBarItem : Route -> {url : String, caption: String} -> Html msg
         navBarItem route {url, caption} =
             li [ class "nav-item" ] 
-                [ a [ href url, classList [ ( "nav-link", True ), 
-                                            ("active", isActive { link = route, page = page }) 
-                                        ] 
+                [ a [ href url
+                    , classList 
+                        [ ( "nav-link", True )
+                        , ("active", isActive { link = route, page = page }) 
+                        ] 
                     ] 
-                    [ text caption ] ]
+                    [ text caption ] 
+                ]
     in
     nav [ classList [ ("navbar", True)
                     , ("navbar-expand-sm", True)
@@ -260,7 +303,7 @@ isActive {link, page} =
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program String Model Msg
 main =
   Browser.application
     { init = init

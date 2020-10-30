@@ -6,6 +6,8 @@ module Api exposing ( getBlogCategories
                     , JWT
                     , updatePost
                     , login
+                    , jwtEncoder
+                    , jwtDecoder
                     )
 import Html
 import Http
@@ -163,6 +165,12 @@ newPostEncoder blogPost =
         , ("published", JE.bool blogPost.published)
         ]
         |> Http.jsonBody
+
+jwtEncoder : JWT -> JE.Value
+jwtEncoder jwt =
+    JE.object
+        [ ("access", JE.string jwt.access) 
+        , ("refresh", JE.string jwt.refresh) ]
 
 
 

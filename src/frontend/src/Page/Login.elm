@@ -1,4 +1,4 @@
-module Page.Login exposing (view, Model, init, Msg (..), update)
+module Page.Login exposing (view, Model, Msg, init, OutMsg (..), update)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events exposing (onInput, onClick)
@@ -11,6 +11,9 @@ type Msg
     | Password String
     | LoginRecieved (Result Http.Error Api.JWT)
 
+type OutMsg
+    = LoginSuccess Api.JWT
+
 type alias Model =
     { username: String
     , password : String}
@@ -20,9 +23,9 @@ initialModel =
     { username = ""
     , password = ""}
 
-init : (Model, Cmd Msg)
+init : (Model, Cmd Msg, Maybe OutMsg)
 init =
-    (initialModel, Cmd.none)
+    (initialModel, Cmd.none, Nothing)
 
 view : Model -> Html Msg
 view model =
@@ -42,20 +45,30 @@ view model =
         , button [ onClick Login ] [text "Login"]
         ]
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Maybe OutMsg )
 update msg model =
     case msg of
         Login ->
             let
                 user = {username = model.username, password = model.password}
             in
-            (model, Api.login user LoginRecieved )
+            (model, Api.login user LoginRecieved, Nothing )
 
         Username username ->
-            ( { model | username = username }, Cmd.none )
+            ( { model | username = username }, Cmd.none, Nothing )
 
         Password password ->
-            ( { model | password = password }, Cmd.none )
+            ( { model | password = password }, Cmd.none, Nothing )
 
-        LoginRecieved _ ->
-            (model, Cmd.none)
+        LoginRecieved result ->
+            case result of 
+                Ok jwt ->
+                    (model, Cmd.none, Just ( LoginSuccess jwt ) )
+
+                Err _ ->
+                    (model, Cmd.none, Nothing)
+
+
+
+
+
