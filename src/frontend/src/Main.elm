@@ -211,7 +211,7 @@ toAdmin model (adminModel, cmd, outMsg) =
             , redoRequest requestMethod
             )
 
-        Nothing ->
+        _ ->
             ( {model | page = AdminPage adminModel}
             , Cmd.map GotAdminMsg cmd)
 

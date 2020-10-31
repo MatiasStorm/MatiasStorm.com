@@ -4,6 +4,7 @@ module Api exposing ( getBlogCategories
                     , PostCategory
                     , Post 
                     , JWT
+                    , OutMsg(..)
                     , updatePost
                     , login
                     , jwtEncoder
@@ -38,6 +39,9 @@ type alias JWT =
     { refresh : String
     , access : String
     }
+
+type OutMsg 
+    = Error401
 
 
 -- API and decoders
