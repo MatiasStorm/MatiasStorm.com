@@ -5,6 +5,7 @@ module Views.PostForm exposing
     , initModel
     , Model
     , view
+    , getPost
     , subscriptions)
 import Api exposing (PostCategory, Post)
 import Html exposing (..)
@@ -111,6 +112,8 @@ multiSelectModel post postCategories =
     Multiselect.populateValues model (multiselectCategories postCategories) selectedCategories
 
 
+getPost : Model -> Post
+getPost model = model.post
 
 
 initModel : Post -> List PostCategory -> Model 

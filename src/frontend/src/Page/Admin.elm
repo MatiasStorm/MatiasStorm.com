@@ -12,12 +12,10 @@ import Views.PostForm as PostForm
 -- types
 type Msg
     = GotPosts (Result Http.Error (List Post))
-    | GotCreatedPost (Result Http.Error Post)
-    | GotUpdatedPost (Result Http.Error Post)
+    | GotPost (Result Http.Error Post)
     | GotCategories (Result Http.Error (List PostCategory))
     | EditPost Post PostEditing
-    -- | CreatePost
-    -- | UpdatePost
+    | RedoRequest
     | GotPostFormMsg PostForm.Msg
 
 
@@ -36,6 +34,13 @@ type PostEditing
 -- Update
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe OutMsg )
 update msg model =
+    let
+        requestMethod =
+            if model.newPost then
+                Api.createPost
+            else
+                Api.updatePost
+    in
     case msg of
         GotCategories result ->
             case result of 
@@ -59,32 +64,7 @@ update msg model =
                 Err _ ->
                     ({model | status = Failure}, Cmd.none, Nothing)
 
-        GotCreatedPost result ->
-            let 
-                updatedPosts : Post -> List Post
-                updatedPosts post =
-                    post :: (List.filter (\p -> p.id /= post.id ) model.posts )
-            in
-            case result of
-                Ok post ->
-                    ( { model 
-                        | posts = updatedPosts post
-                        , showPostForm = False
-                    }, Cmd.none, Nothing)
-
-                Err error ->
-                    -- case error of 
-                    --     Http.BadStatus status ->
-                    --         if status == 401 then
-                    --             ( model
-                    --             , Cmd.none
-                    --             , Just (FailedRequest CreatePost))
-                    --         else
-                    --             (model, Cmd.none, Nothing)
-                    --     _  ->
-                            ({model | status = Failure}, Cmd.none, Nothing)
-
-        GotUpdatedPost result ->
+        GotPost result ->
             let 
                 updatedPosts : Post -> List Post
                 updatedPosts post =
@@ -101,12 +81,13 @@ update msg model =
                     case error of 
                         Http.BadStatus status ->
                             if status == 401 then
-                                (model, Cmd.none, Nothing)
+                                ( model
+                                , Cmd.none
+                                , Just (FailedRequest RedoRequest))
                             else
                                 (model, Cmd.none, Nothing)
                         _  ->
                             ({model | status = Failure}, Cmd.none, Nothing)
-
 
         EditPost post postEditing ->
             let 
@@ -124,11 +105,11 @@ update msg model =
               , Nothing
             )
 
-        -- CreatePost ->
-        --     (model, createPost model.newPost GotCreatedPost model.jwt, Nothing )
-
-        -- UpdatePost ->
-        --     (model, updatePost model.existingPost GotUpdatedPost model.jwt, Nothing)
+        RedoRequest ->
+            let
+                post = PostForm.getPost model.postFormModel
+            in
+            (model, requestMethod post GotPost model.jwt, Nothing)
 
         GotPostFormMsg postFormMsg ->
             let
@@ -139,10 +120,7 @@ update msg model =
                     ( {model | showPostForm = False}, Cmd.none, Nothing )
 
                 Just (PostForm.SubmitSend post) ->
-                    if model.newPost then
-                        ( { model | showPostForm = False }, Api.createPost post GotCreatedPost model.jwt, Nothing )
-                    else
-                        ( { model | showPostForm = False }, Api.updatePost post GotUpdatedPost model.jwt, Nothing)
+                    ( { model | showPostForm = False }, requestMethod post GotPost model.jwt, Nothing )
 
                 Nothing ->
                     ( { model | postFormModel = formModel }, Cmd.none, Nothing)
