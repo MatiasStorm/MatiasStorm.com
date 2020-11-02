@@ -15,6 +15,7 @@ import Api exposing (JWT)
 import Json.Encode as JE
 import Json.Decode as JD
 import Ports
+import Html.Events exposing (onClick)
 -- import Route exposing (Route)
 
 
@@ -113,6 +114,7 @@ type Msg
     | GotBlogMsg Blog.Msg
     | GotAdminMsg Admin.Msg
     | GotLoginMsg Login.Msg
+    | Logout
     | RefreshToken Admin.Msg (Result Http.Error JWT )
 
 
@@ -181,6 +183,9 @@ update msg model =
                         , Ports.saveJwt Nothing      -- Delete the saved jwt, if refresh doesn't work.
                         ]
                     )
+        
+        Logout ->
+            ( { model | jwt = Nothing }, Ports.saveJwt Nothing )
 
 
 toHome : Model -> (Home.Model, Cmd Home.Msg) -> (Model, Cmd Msg)
@@ -211,7 +216,7 @@ toAdmin model (adminModel, cmd, outMsg) =
             , redoRequest requestMethod
             )
 
-        _ ->
+        Nothing ->
             ( {model | page = AdminPage adminModel}
             , Cmd.map GotAdminMsg cmd)
 
@@ -284,7 +289,7 @@ view model =
 
 
 
-navbarView : Page -> Bool -> Html msg
+navbarView : Page -> Bool -> Html Msg
 navbarView page loggedIn =
     let 
         logo = a [class "navbar-brand", href "/"] [text "matiasStorm"]
@@ -292,7 +297,10 @@ navbarView page loggedIn =
         loggedInLinks = 
             if loggedIn then
                 [ navBarItem Admin { url = "/admin", caption = "Admin" }
-                , navBarItem Login { url = "/login", caption = "Logout" } 
+                , li [ class "nav-item" ] 
+                    [ a [ class "nav-link", onClick Logout ] 
+                        [ text "Logout" ] 
+                    ]
                 ]
             else 
                 [ navBarItem Login { url = "/login", caption = "Login" } ]
@@ -304,7 +312,7 @@ navbarView page loggedIn =
                 -- , navBarItem Blog { url="/blog", caption="Blog" }
             ]
 
-        navBarItem : Route -> {url : String, caption: String} -> Html msg
+        navBarItem : Route -> {url : String, caption: String} -> Html Msg
         navBarItem route {url, caption} =
             li [ class "nav-item" ] 
                 [ a [ href url

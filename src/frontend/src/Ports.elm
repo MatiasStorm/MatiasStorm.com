@@ -16,4 +16,4 @@ saveJwt jwt =
                 |> storeJwt
                  
         Nothing ->
-            Cmd.none
+            storeJwt ""

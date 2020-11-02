@@ -15,6 +15,8 @@ import Html
 import Http
 import Json.Decode as JD
 import Json.Encode as JE
+import Browser
+import Url.Builder
 
 
 type alias PostCategory = 
@@ -46,8 +48,7 @@ type OutMsg
 
 -- API and decoders
 serverUrl : String
-serverUrl = "http://localhost:8000/api/"
--- serverUrl = "https://matiasstorm.com/api/"
+serverUrl = Url.Builder.absolute [] [] ++ "api/"
 
 
 get : String -> JD.Decoder a -> ( Result Http.Error a -> msg) -> Maybe JWT -> Cmd msg
