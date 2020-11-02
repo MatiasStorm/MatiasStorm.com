@@ -115,7 +115,6 @@ multiSelectModel post postCategories =
 getPost : Model -> Post
 getPost model = model.post
 
-
 initModel : Post -> List PostCategory -> Model 
 initModel post postCategories = 
     { post = post
@@ -144,7 +143,7 @@ view model =
             [ label [Attr.for "postText"] [ text "Post Text" ]
             , textarea 
                 [ Attr.class "form-control"
-                , Attr.style "height" "400px"
+                , Attr.style "height" "60vh"
                 , Attr.id "postText"
                 , Attr.value post.text 
                 , onInput Text

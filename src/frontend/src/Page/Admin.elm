@@ -1,4 +1,5 @@
 module Page.Admin exposing (OutMsg(..), view, Model, init, Msg, update, subscriptions)
+import Views.MarkdownView exposing (renderMarkdown)
 import Html exposing (..)
 import Api exposing (JWT, PostCategory, Post)
 import Html.Attributes as Attr
@@ -211,8 +212,35 @@ view model =
     div [ Attr.class "container-fluid" ] 
         [ newPostButtonView model
         , postTableView model
-        , Html.map GotPostFormMsg <| htmlIf ( model.showPostForm, (PostForm.view model.postFormModel))
+        , editView model
         ]
+
+editView : Model -> Html Msg
+editView model =
+    if model.showPostForm then
+        div [ Attr.class "row" ] 
+            [ Html.map GotPostFormMsg <| PostForm.view model.postFormModel
+            , markdownPreview ( PostForm.getPost model.postFormModel )
+            ]
+    else 
+        text ""
+
+markdownPreview : Post -> Html Msg
+markdownPreview post =
+    div [ Attr.class "col-6" ]
+        [ h1 [] [text post.title ] 
+        , case (renderMarkdown post.text) of
+            Ok rendered ->
+                div 
+                    [ Attr.class "border border-black p-4"
+                    , Attr.style "height" "80vh"
+                    , Attr.style "overflow" "scroll"
+                    , Attr.] 
+                    rendered
+            Err errors ->
+                text errors
+        ]
+
 
 newPostButtonView : Model -> Html Msg
 newPostButtonView model = 

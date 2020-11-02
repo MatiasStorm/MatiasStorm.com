@@ -16,7 +16,6 @@ import Json.Encode as JE
 import Json.Decode as JD
 import Ports
 import Html.Events exposing (onClick)
--- import Route exposing (Route)
 
 
 -- Route
