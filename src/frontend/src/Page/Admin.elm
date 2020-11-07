@@ -235,7 +235,7 @@ markdownPreview post =
                     [ Attr.class "border border-black p-4"
                     , Attr.style "height" "80vh"
                     , Attr.style "overflow" "scroll"
-                    , Attr.] 
+                    ] 
                     rendered
             Err errors ->
                 text errors

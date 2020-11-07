@@ -27,7 +27,6 @@ from .settings import (
     USE_TZ,
     STATIC_URL,
     REST_FRAMEWORK,
-    SIMPLE_JWT,
     CORS_ORIGIN_WHITELIST
 )
 
