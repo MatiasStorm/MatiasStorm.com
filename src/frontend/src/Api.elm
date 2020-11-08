@@ -1,4 +1,4 @@
-module Api exposing ( getBlogCategories
+port module Api exposing ( getBlogCategories
                     , getBlogPosts
                     , createPost
                     , PostCategory
@@ -18,6 +18,27 @@ import Json.Encode as JE
 import Browser
 import Url.Builder
 
+type Cred
+    = Cred String
+
+
+credHeader : Cred -> Http.Header
+credHeader (Cred  str) =
+    Http.header "authorization" ("Token " ++ str)
+
+
+{-| It's important that this is never exposed!
+
+We expose `login` and `application` instead, so we can be certain that if anyone
+ever has access to a `Cred` value, it came from either the login API endpoint
+or was passed in via flags.
+
+-}
+credDecoder : Decoder Cred
+credDecoder =
+    Decode.succeed Cred
+        |> required "username" Username.decoder
+        |> required "token" Decode.string
 
 type alias PostCategory = 
     { id : String

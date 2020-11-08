@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Api exposing (Cred)
-import Avatar exposing (Avatar)
+-- import Avatar exposing (Avatar)
 import Browser exposing (Document)
 import Browser.Navigation as Nav
 import Html exposing (..)
