@@ -1,30 +1,58 @@
-port module Api exposing ( getBlogCategories
-                    , getBlogPosts
-                    , createPost
-                    , PostCategory
-                    , Post 
-                    , JWT
-                    , OutMsg(..)
-                    , updatePost
-                    , login
-                    , jwtEncoder
-                    , jwtDecoder
-                    , refreshToken
-                    )
-import Html
-import Http
-import Json.Decode as JD
-import Json.Encode as JE
-import Browser
-import Url.Builder
+port module Api exposing 
+    (Cred
+    , addServerError
+    , application
+    , get
+    , login
+    , logout
+    , post
+    , put
+    , storeCred
+    , credChanges
+    )
 
+{-| This module is responsible for communicating to the Conduit API.
+
+It exposes an opaque Endpoint type which is guaranteed to point to the correct URL.
+
+-}
+
+import Api.Endpoint as Endpoint exposing (Endpoint)
+import Browser
+import Browser.Navigation as Nav
+import Http exposing (Body, Expect)
+import Json.Decode as Decode exposing (Decoder, Value, decodeString, field, string)
+import Json.Encode as Encode
+import Url exposing (Url)
+import Username exposing (Username)
+
+
+
+-- CRED
+
+
+{-| The authentication credentials for the Viewer (that is, the currently logged-in user.)
+
+This includes:
+
+  - The cred's Username
+  - The cred's authentication token
+
+By design, there is no way to access the token directly as a String.
+It can be encoded for persistence, and it can be added to a header
+to a HttpBuilder for a request, but that's it.
+
+This token should never be rendered to the end user, and with this API, it
+can't be!
+
+-}
 type Cred
     = Cred String
 
 
 credHeader : Cred -> Http.Header
-credHeader (Cred  str) =
-    Http.header "authorization" ("Token " ++ str)
+credHeader (Cred str) =
+    Http.header "Authorization" ("Token " ++ str)
 
 
 {-| It's important that this is never exposed!
@@ -36,201 +64,207 @@ or was passed in via flags.
 -}
 credDecoder : Decoder Cred
 credDecoder =
-    Decode.succeed Cred
-        |> required "username" Username.decoder
-        |> required "token" Decode.string
-
-type alias PostCategory = 
-    { id : String
-    , category_name : String
-    , description : String
-    , created : String
-    }
-
-type alias Post =
-    { id: String
-    , title: String
-    , text: String
-    , categories : (List String)
-    , serie : Maybe String
-    , published : Bool
-    , created :  String
-    , updated :  String
-    }
-
-type alias JWT =
-    { refresh : String
-    , access : String
-    }
-
-type OutMsg 
-    = Error401
+    Decode.map Cred
+        (Decode.field "token" Decode.string)
 
 
--- API and decoders
-serverUrl : String
-serverUrl = Url.Builder.absolute [] [] ++ "api/"
+
+-- PERSISTENCE
 
 
-get : String -> JD.Decoder a -> ( Result Http.Error a -> msg) -> Maybe JWT -> Cmd msg
-get url decoder msg jwt =
-    Http.request 
+
+port onStoreChange : (Value -> msg) -> Sub msg
+
+
+credChanges : (Maybe Cred -> msg) -> Sub msg
+credChanges toMsg =
+    let
+        maybeCred : Value -> Maybe Cred
+        maybeCred value = 
+            let 
+                _ = Debug.log "Cred Changed" value
+            in
+            ( Decode.decodeValue Decode.string value 
+                |> Result.andThen (\str -> Decode.decodeString credDecoder str )
+                |> Result.toMaybe
+                )
+    in
+    onStoreChange (\value -> toMsg ( maybeCred value ))
+
+
+
+storeCred : Cred -> Cmd msg
+storeCred (Cred token) =
+    let
+        json =
+            Encode.object
+                [ ( "token", Encode.string token )]
+    in
+    storeCache (Just json)
+
+
+logout : Cmd msg
+logout =
+    storeCache Nothing
+
+
+port storeCache : Maybe Value -> Cmd msg
+
+
+
+-- SERIALIZATION
+-- APPLICATION
+
+
+application :
+        { init : Maybe Cred -> Url -> Nav.Key -> ( model, Cmd msg )
+        , onUrlChange : Url -> msg
+        , onUrlRequest : Browser.UrlRequest -> msg
+        , subscriptions : model -> Sub msg
+        , update : msg -> model -> ( model, Cmd msg )
+        , view : model -> Browser.Document msg
+        }
+    -> Program Value model msg
+application config =
+    let
+        init flags url navKey =
+            let
+                maybeCred =
+                    Decode.decodeValue Decode.string flags
+                        |> Result.andThen (Decode.decodeString credDecoder)
+                        |> Result.toMaybe
+            in
+            config.init maybeCred url navKey
+    in
+    Browser.application
+        { init = init
+        , onUrlChange = config.onUrlChange
+        , onUrlRequest = config.onUrlRequest
+        , subscriptions = config.subscriptions
+        , update = config.update
+        , view = config.view
+        }
+
+
+
+
+-- HTTP
+
+
+get : Endpoint -> Maybe Cred -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
+get url maybeCred decoder msg =
+    Endpoint.request
         { method = "GET"
-        , url = url 
+        , url = url
         , expect = Http.expectJson msg decoder
-        , headers = getHeaders jwt
+        , headers =
+            case maybeCred of
+                Just cred ->
+                    [ credHeader cred ]
+
+                Nothing ->
+                    []
         , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-post : String -> Http.Body -> JD.Decoder a -> ( Result Http.Error a -> msg) -> Maybe JWT -> Cmd msg
-post url body decoder msg jwt =
-    Http.request 
-        { method = "POST"
-        , url = url 
-        , expect = Http.expectJson msg decoder 
-        , headers = getHeaders jwt
-        , body = body
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-put : String -> Http.Body -> JD.Decoder a -> ( Result Http.Error a -> msg) -> Maybe JWT -> Cmd msg
-put url body decoder msg jwt =
-    Http.request 
+put : Endpoint -> Cred -> Body -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
+put url cred body decoder msg =
+    Endpoint.request
         { method = "PUT"
-        , url = url 
-        , expect = Http.expectJson msg decoder 
-        , headers = getHeaders jwt
+        , url = url
+        , expect = Http.expectJson msg decoder
+        , headers = [ credHeader cred ]
         , body = body
         , timeout = Nothing
         , tracker = Nothing
         }
 
-getHeaders : Maybe JWT -> List Http.Header
-getHeaders jwt =
-    let 
-        headers : List Http.Header
-        headers = []
-    in
-    case jwt of
-        Just actualJwt ->
-            Http.header "Authorization" ("JWT " ++ actualJwt.access)
-            :: headers
 
-        Nothing ->
-            headers
+post : Endpoint -> Maybe Cred -> Body -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
+post url maybeCred body decoder msg =
+    Endpoint.request
+        { method = "POST"
+        , url = url
+        , expect = Http.expectJson msg decoder 
+        , headers =
+            case maybeCred of
+                Just cred ->
+                    [ credHeader cred ]
 
-credentials :  JWT -> Http.Header
-credentials jwt = Http.header "Authorization" ("JWT " ++ jwt.access)
-
--- Get requests
-getBlogCategories : ( Result Http.Error (List PostCategory) -> msg ) -> Maybe JWT -> Cmd msg
-getBlogCategories msg jwt =
-    get (serverUrl ++ "post_category/") categoriesDecoder msg jwt 
+                Nothing ->
+                    []
+        , body = body
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
-
-getBlogPosts : ( Result Http.Error (List Post) -> msg ) -> Maybe JWT-> Cmd msg
-getBlogPosts msg jwt = 
-    get (serverUrl ++ "post/") postsDecoder msg jwt
-
--- Decoders
-categoryDecoder : JD.Decoder PostCategory
-categoryDecoder =
-    JD.map4 PostCategory
-        (JD.field "id" JD.string)
-        (JD.field "category_name" JD.string)
-        (JD.field "description" JD.string)
-        (JD.field "created" JD.string)
-
-categoriesDecoder : JD.Decoder (List PostCategory)
-categoriesDecoder =
-    JD.list categoryDecoder
-
-postDecoder : JD.Decoder Post
-postDecoder =
-    JD.map8 Post
-        (JD.field "id" JD.string)
-        (JD.field "title" JD.string)
-        (JD.field "text" JD.string)
-        (JD.field "categories" (JD.list JD.string))
-        (JD.field "serie" (JD.nullable JD.string ))
-        (JD.field "published" JD.bool)
-        (JD.field "created" JD.string)
-        (JD.field "updated" JD.string)
-
-postsDecoder : JD.Decoder (List Post)
-postsDecoder = 
-    JD.list postDecoder
+delete : Endpoint -> Cred -> Body -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
+delete url cred body decoder msg =
+    Endpoint.request
+        { method = "DELETE"
+        , url = url
+        , expect = Http.expectJson msg decoder
+        , headers = [ credHeader cred ]
+        , body = body
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
-jwtDecoder : JD.Decoder JWT
-jwtDecoder =
-    JD.map2 JWT
-        ( JD.field "refresh" JD.string )
-        ( JD.field "access" JD.string )
-
--- Post and PUT Requests
-createPost : Post -> ( Result Http.Error Post -> msg ) -> Maybe JWT -> Cmd msg
-createPost blogPost msg jwt =
-    let 
-        body = newPostEncoder blogPost
-    in
-    post (serverUrl ++ "post/") body postDecoder msg jwt
-
-updatePost : Post -> ( Result Http.Error Post -> msg ) -> Maybe JWT -> Cmd msg
-updatePost blogPost msg jwt =
-    let 
-        body = newPostEncoder blogPost
-    in
-    put (serverUrl ++ "post/" ++ blogPost.id ++ "/") body postDecoder msg jwt
-
-login : {username : String, password : String} -> ( Result Http.Error JWT -> msg ) -> Maybe JWT -> Cmd msg
-login {username, password} msg jwt = 
-    let
-        body = JE.object 
-                    [ ("username", JE.string username)
-                    , ("password", JE.string password)]
-                |> Http.jsonBody
-    in
-    post (serverUrl ++ "token/obtain/") body jwtDecoder msg jwt
-
-refreshToken : JWT -> (Result Http.Error JWT -> msg) -> Cmd msg
-refreshToken jwt msg =
-    let 
-        body : Http.Body
-        body = JE.object 
-                    [("refresh", JE.string jwt.refresh)]
-                |> Http.jsonBody    
-    in
-    post (serverUrl ++ "token/refresh/") body jwtDecoder msg Nothing
-
-
--- Encoders
-newPostEncoder : Post -> Http.Body
-newPostEncoder blogPost =
-    JE.object
-        [ ("title", JE.string blogPost.title)
-        , ("text", JE.string blogPost.text)
-        , ("categories", JE.list JE.string blogPost.categories)
-        , ("published", JE.bool blogPost.published)
-        ]
-        |> Http.jsonBody
-
-jwtEncoder : JWT -> JE.Value
-jwtEncoder jwt =
-    JE.object
-        [ ("access", JE.string jwt.access) 
-        , ("refresh", JE.string jwt.refresh) ]
+login : Http.Body -> (Result Http.Error Cred -> msg) -> Cmd msg
+login body msg =
+    post Endpoint.login Nothing body credDecoder msg
 
 
 
 
 
+-- ERRORS
+
+
+addServerError : List String -> List String
+addServerError list =
+    "Server error" :: list
+
+
+{-| Many API endpoints include an "errors" field in their BadStatus responses.
+-}
+-- decodeErrors : Http.Error -> List String
+-- decodeErrors error =
+--     case error of
+--         Http.BadStatus response ->
+--             response.body
+--                 |> decodeString (field "errors" errorsDecoder)
+--                 |> Result.withDefault [ "Server error" ]
+
+--         err ->
+--             [ "Server error" ]
+
+
+errorsDecoder : Decoder (List String)
+errorsDecoder =
+    Decode.keyValuePairs (Decode.list Decode.string)
+        |> Decode.map (List.concatMap fromPair)
+
+
+fromPair : ( String, List String ) -> List String
+fromPair ( field, errors ) =
+    List.map (\error -> field ++ " " ++ error) errors
 
 
 
+-- LOCALSTORAGE KEYS
 
+
+cacheStorageKey : String
+cacheStorageKey =
+    "cache"
+
+
+credStorageKey : String
+credStorageKey =
+    "cred"

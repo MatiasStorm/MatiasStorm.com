@@ -8,6 +8,8 @@ import Html exposing (..)
 import Json.Decode as Decode exposing (Value)
 import Page exposing (Page)
 import Page.Home as Home
+import Page.NotFound as NotFound
+import Page.Blank as Blank 
 import Page.Login as Login
 import Page.Admin as Admin
 import Route exposing (Route)
@@ -15,15 +17,6 @@ import Session exposing (Session)
 import Task
 import Time
 import Url exposing (Url)
-import Viewer exposing (Viewer)
-
-
-
--- NOTE: Based on discussions around how asset management features
--- like code splitting and lazy loading have been shaping up, it's possible
--- that most of this file may become unnecessary in a future release of Elm.
--- Avoid putting things in this module unless there is no alternative!
--- See https://discourse.elm-lang.org/t/elm-spa-in-0-19/1800/2 for more.
 
 
 type Model
@@ -38,10 +31,10 @@ type Model
 -- MODEL
 
 
-init : Maybe Viewer -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init maybeViewer url navKey =
+init : Maybe Cred -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init maybeCred url navKey =
     changeRouteTo (Route.fromUrl url)
-        (Redirect (Session.fromViewer navKey maybeViewer))
+        (Redirect (Session.fromCred navKey maybeCred))
 
 
 
@@ -51,13 +44,13 @@ init maybeViewer url navKey =
 view : Model -> Document Msg
 view model =
     let
-        viewer =
-            Session.viewer (toSession model)
+        maybeCred =
+            Session.cred (toSession model)
 
         viewPage page toMsg config =
             let
                 { title, body } =
-                    Page.view viewer page config
+                    Page.view maybeCred page config
             in
             { title = title
             , body = List.map (Html.map toMsg) body
@@ -65,34 +58,19 @@ view model =
     in
     case model of
         Redirect _ ->
-            Page.view viewer Page.Other Blank.view
+            Page.view maybeCred Page.Other Blank.view
 
         NotFound _ ->
-            Page.view viewer Page.Other NotFound.view
-
-        Settings settings ->
-            viewPage Page.Other GotSettingsMsg (Settings.view settings)
+            Page.view maybeCred Page.Other NotFound.view
 
         Home home ->
             viewPage Page.Home GotHomeMsg (Home.view home)
 
         Login login ->
-            viewPage Page.Other GotLoginMsg (Login.view login)
+            viewPage Page.Login GotLoginMsg (Login.view login)
 
-        Register register ->
-            viewPage Page.Other GotRegisterMsg (Register.view register)
-
-        Profile username profile ->
-            viewPage (Page.Profile username) GotProfileMsg (Profile.view profile)
-
-        Article article ->
-            viewPage Page.Other GotArticleMsg (Article.view article)
-
-        Editor Nothing editor ->
-            viewPage Page.NewArticle GotEditorMsg (Editor.view editor)
-
-        Editor (Just _) editor ->
-            viewPage Page.Other GotEditorMsg (Editor.view editor)
+        Admin admin ->
+            viewPage Page.Admin GotAdminMsg (Admin.view admin)
 
 
 
@@ -103,13 +81,9 @@ type Msg
     = ChangedUrl Url
     | ClickedLink Browser.UrlRequest
     | GotHomeMsg Home.Msg
-    | GotSettingsMsg Settings.Msg
-    | GotLoginMsg Login.Msg
-    | GotRegisterMsg Register.Msg
-    | GotProfileMsg Profile.Msg
-    | GotArticleMsg Article.Msg
-    | GotEditorMsg Editor.Msg
     | GotSession Session
+    | GotLoginMsg Login.Msg
+    | GotAdminMsg Admin.Msg
 
 
 toSession : Model -> Session
@@ -124,52 +98,25 @@ toSession page =
         Home home ->
             Home.toSession home
 
-        Settings settings ->
-            Settings.toSession settings
-
         Login login ->
             Login.toSession login
 
-        Register register ->
-            Register.toSession register
-
-        Profile _ profile ->
-            Profile.toSession profile
-
-        Article article ->
-            Article.toSession article
-
-        Editor _ editor ->
-            Editor.toSession editor
-
+        Admin admin ->
+            Admin.toSession admin
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
 changeRouteTo maybeRoute model =
     let
         session =
             toSession model
+        _ = Debug.log "Change route" session
     in
     case maybeRoute of
         Nothing ->
             ( NotFound session, Cmd.none )
 
-        Just Route.Root ->
-            ( model, Route.replaceUrl (Session.navKey session) Route.Home )
-
         Just Route.Logout ->
             ( model, Api.logout )
-
-        Just Route.NewArticle ->
-            Editor.initNew session
-                |> updateWith (Editor Nothing) GotEditorMsg model
-
-        Just (Route.EditArticle slug) ->
-            Editor.initEdit session slug
-                |> updateWith (Editor (Just slug)) GotEditorMsg model
-
-        Just Route.Settings ->
-            Settings.init session
-                |> updateWith Settings GotSettingsMsg model
 
         Just Route.Home ->
             Home.init session
@@ -179,41 +126,21 @@ changeRouteTo maybeRoute model =
             Login.init session
                 |> updateWith Login GotLoginMsg model
 
-        Just Route.Register ->
-            Register.init session
-                |> updateWith Register GotRegisterMsg model
-
-        Just (Route.Profile username) ->
-            Profile.init session username
-                |> updateWith (Profile username) GotProfileMsg model
-
-        Just (Route.Article slug) ->
-            Article.init session slug
-                |> updateWith Article GotArticleMsg model
+        Just Route.Admin ->
+            Admin.init session
+                |> updateWith Admin GotAdminMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let 
+        _ = Debug.log "Main" msg
+    in
     case ( msg, model ) of
         ( ClickedLink urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
-                    case url.fragment of
-                        Nothing ->
-                            -- If we got a link that didn't include a fragment,
-                            -- it's from one of those (href "") attributes that
-                            -- we have to include to make the RealWorld CSS work.
-                            --
-                            -- In an application doing path routing instead of
-                            -- fragment-based routing, this entire
-                            -- `case url.fragment of` expression this comment
-                            -- is inside would be unnecessary.
-                            ( model, Cmd.none )
-
-                        Just _ ->
-                            ( model
-                            , Nav.pushUrl (Session.navKey (toSession model)) (Url.toString url)
-                            )
+                    ( model, Nav.pushUrl (Session.navKey (toSession model)) (Url.toString url) )
 
                 Browser.External href ->
                     ( model
@@ -223,33 +150,17 @@ update msg model =
         ( ChangedUrl url, _ ) ->
             changeRouteTo (Route.fromUrl url) model
 
-        ( GotSettingsMsg subMsg, Settings settings ) ->
-            Settings.update subMsg settings
-                |> updateWith Settings GotSettingsMsg model
+        ( GotHomeMsg subMsg, Home home ) ->
+            Home.update subMsg home
+                |> updateWith Home GotHomeMsg model
 
         ( GotLoginMsg subMsg, Login login ) ->
             Login.update subMsg login
                 |> updateWith Login GotLoginMsg model
 
-        ( GotRegisterMsg subMsg, Register register ) ->
-            Register.update subMsg register
-                |> updateWith Register GotRegisterMsg model
-
-        ( GotHomeMsg subMsg, Home home ) ->
-            Home.update subMsg home
-                |> updateWith Home GotHomeMsg model
-
-        ( GotProfileMsg subMsg, Profile username profile ) ->
-            Profile.update subMsg profile
-                |> updateWith (Profile username) GotProfileMsg model
-
-        ( GotArticleMsg subMsg, Article article ) ->
-            Article.update subMsg article
-                |> updateWith Article GotArticleMsg model
-
-        ( GotEditorMsg subMsg, Editor slug editor ) ->
-            Editor.update subMsg editor
-                |> updateWith (Editor slug) GotEditorMsg model
+        ( GotAdminMsg subMsg, Admin admin ) ->
+            Admin.update subMsg admin
+                |> updateWith Admin GotAdminMsg model
 
         ( GotSession session, Redirect _ ) ->
             ( Redirect session
@@ -281,35 +192,21 @@ subscriptions model =
         Redirect _ ->
             Session.changes GotSession (Session.navKey (toSession model))
 
-        Settings settings ->
-            Sub.map GotSettingsMsg (Settings.subscriptions settings)
-
         Home home ->
             Sub.map GotHomeMsg (Home.subscriptions home)
 
         Login login ->
             Sub.map GotLoginMsg (Login.subscriptions login)
 
-        Register register ->
-            Sub.map GotRegisterMsg (Register.subscriptions register)
-
-        Profile _ profile ->
-            Sub.map GotProfileMsg (Profile.subscriptions profile)
-
-        Article article ->
-            Sub.map GotArticleMsg (Article.subscriptions article)
-
-        Editor _ editor ->
-            Sub.map GotEditorMsg (Editor.subscriptions editor)
-
+        Admin admin ->
+            Sub.map GotAdminMsg (Admin.subscriptions admin)
 
 
 -- MAIN
 
-
 main : Program Value Model Msg
 main =
-    Api.application Viewer.decoder
+    Api.application
         { init = init
         , onUrlChange = ChangedUrl
         , onUrlRequest = ClickedLink

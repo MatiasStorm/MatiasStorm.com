@@ -1,12 +1,22 @@
-module Page.Admin exposing (OutMsg(..), view, Model, init, Msg, update, subscriptions)
+module Page.Admin exposing 
+    ( OutMsg(..)
+    , view
+    , Model
+    , init
+    , Msg
+    , update
+    , subscriptions
+    , toSession
+    )
 import Views.MarkdownView exposing (renderMarkdown)
 import Html exposing (..)
-import Api exposing (JWT, PostCategory, Post)
+import Api exposing (Cred)
+import Post exposing (Post, PostCategory, getPosts, getPostCategories)
+import Route
 import Html.Attributes as Attr
+import Session exposing (Session)
 import Http
-import Html.Events exposing (onClick)
-import Html.Events exposing (onInput)
-import Html.Events exposing (onCheck)
+import Html.Events exposing (onClick, onInput, onCheck)
 import Multiselect
 import Views.PostForm as PostForm
 
@@ -16,8 +26,8 @@ type Msg
     | GotPost (Result Http.Error Post)
     | GotCategories (Result Http.Error (List PostCategory))
     | EditPost Post PostEditing
-    | RedoRequest
     | GotPostFormMsg PostForm.Msg
+    | GotSession Session
 
 
 type Status
@@ -33,15 +43,8 @@ type PostEditing
     | EditExistingPost
 
 -- Update
-update : Msg -> Model -> ( Model, Cmd Msg, Maybe OutMsg )
+update : Msg -> Model -> ( Model, Cmd Msg)
 update msg model =
-    let
-        requestMethod =
-            if model.newPost then
-                Api.createPost
-            else
-                Api.updatePost
-    in
     case msg of
         GotCategories result ->
             case result of 
@@ -49,10 +52,10 @@ update msg model =
                     ( { model 
                         | postCategories = categoryList
                         , status = Success 
-                    }, Cmd.none, Nothing)
+                    }, Cmd.none)
 
                 Err _ ->
-                    ({model | status = Failure}, Cmd.none, Nothing)
+                    ({model | status = Failure}, Cmd.none)
 
         GotPosts result ->
             case result of
@@ -60,10 +63,10 @@ update msg model =
                     ( { model 
                         | posts = postList
                         , status = Success 
-                    }, Cmd.none, Nothing)
+                    }, Cmd.none)
 
                 Err _ ->
-                    ({model | status = Failure}, Cmd.none, Nothing)
+                    ({model | status = Failure}, Cmd.none)
 
         GotPost result ->
             let 
@@ -76,19 +79,17 @@ update msg model =
                     ( { model 
                         | posts = updatedPosts post
                         , showPostForm = False
-                    }, Cmd.none, Nothing)
+                    }, Cmd.none)
 
                 Err error ->
                     case error of 
                         Http.BadStatus status ->
                             if status == 401 then
-                                ( model
-                                , Cmd.none
-                                , Just (FailedRequest RedoRequest))
+                                ( model, Cmd.none)
                             else
-                                (model, Cmd.none, Nothing)
+                                (model, Cmd.none)
                         _  ->
-                            ({model | status = Failure}, Cmd.none, Nothing)
+                            ({model | status = Failure}, Cmd.none)
 
         EditPost post postEditing ->
             let 
@@ -102,30 +103,39 @@ update msg model =
                 , postFormModel = createPostFormModel post ( Just model.postCategories )
                 , newPost = newPost
                 } 
-              , Cmd.none
-              , Nothing
+              , Cmd.none 
             )
-
-        RedoRequest ->
-            let
-                post = PostForm.getPost model.postFormModel
-            in
-            (model, requestMethod post GotPost model.jwt, Nothing)
 
         GotPostFormMsg postFormMsg ->
             let
                 (formModel, cmd, outMsg) = PostForm.update postFormMsg model.postFormModel
+                requestMethod =
+                    if model.newPost then
+                        Post.createPost
+                    else
+                        Post.updatePost
+
+                doRequest : Post -> Cmd Msg
+                doRequest post =
+                    case Session.cred model.session of
+                        Just cred ->
+                            requestMethod cred post GotPost 
+                            
+                        Nothing ->
+                            Cmd.none
             in
             case outMsg of
                 Just PostForm.CancelSend ->
-                    ( {model | showPostForm = False}, Cmd.none, Nothing )
+                    ( {model | showPostForm = False}, Cmd.none )
 
                 Just (PostForm.SubmitSend post) ->
-                    ( { model | showPostForm = False }, requestMethod post GotPost model.jwt, Nothing )
+                    ( { model | showPostForm = False }, doRequest post)
 
                 Nothing ->
-                    ( { model | postFormModel = formModel }, Cmd.none, Nothing)
+                    ( { model | postFormModel = formModel }, Cmd.none)
 
+        GotSession session ->
+            ( { model | session = session }, Cmd.none)
 
 
 -- Model
@@ -137,14 +147,17 @@ type alias Model =
     , showPostForm : Bool
     , newPost : Bool
     , postFormModel : PostForm.Model
-    , jwt: Maybe JWT
+    , session : Session
     }
 
 -- Subscriptions
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map GotPostFormMsg <| PostForm.subscriptions model.postFormModel
+    Sub.batch 
+        [ Sub.map GotPostFormMsg <| PostForm.subscriptions model.postFormModel
+        , Session.changes GotSession (Session.navKey model.session)
+        ]
 
 
 -- Init
@@ -168,26 +181,31 @@ createPostFormModel post categories =
         Nothing ->
             PostForm.initModel post []
 
-initialModel : Maybe JWT -> Model
-initialModel jwt = 
+initialModel : Session -> Model
+initialModel session = 
     { posts = []
     , postCategories = []
     , status = Loading
     , showPostForm = False
     , newPost = False
-    , jwt = jwt
+    , session = session
     , postFormModel = createPostFormModel initialPost Nothing
     }
 
 
-init : Maybe JWT -> (Model, Cmd Msg, Maybe OutMsg)
-init jwt =
-    ( initialModel jwt
-    , Cmd.batch 
-        [ Api.getBlogCategories GotCategories jwt
-        , Api.getBlogPosts GotPosts jwt
-        ]  
-    , Nothing
+init : Session -> (Model, Cmd Msg)
+init session =
+    let
+        commands =
+            case Session.cred session of
+                Just cres -> 
+                    [ getPosts (Session.cred session) GotPosts
+                    , getPostCategories (Session.cred session) GotCategories
+                    ]
+                Nothing -> [ Route.pushUrl (Session.navKey session) Route.Login ]
+    in
+    ( initialModel session
+    , Cmd.batch commands  
     )
 
 
@@ -203,8 +221,13 @@ htmlIf (bool, component) =
         False ->
             text ""
 
-view : Model -> Html Msg
-view model =
+view : Model -> { title : String, content : Html Msg }
+view model = 
+    { title = "Admin", content = contentView model }
+
+
+contentView : Model -> Html Msg
+contentView model =
     let
         optionView : PostCategory -> Html msg
         optionView category = option [ Attr.id "postCategories" ] [text category.category_name] 
@@ -271,3 +294,6 @@ postTableView model =
             ]
         )
 
+toSession : Model -> Session
+toSession model =
+    model.session

@@ -1,10 +1,18 @@
-module Route exposing (Route(..), fromUrl, href, replaceUrl)
+module Route exposing 
+    ( Route(..)
+    , fromUrl
+    , href
+    , replaceUrl
+    , pushUrl
+    , back
+    )
 
 import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
+import Url.Builder
 
 
 
@@ -13,8 +21,8 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 
 type Route
     = Home
-    | Login
     | Logout
+    | Login
     | Admin
 
 
@@ -22,8 +30,8 @@ parser : Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
-        , Parser.map Login (s "login")
         , Parser.map Logout (s "logout")
+        , Parser.map Login (s "login")
         , Parser.map Admin (s "admin")
         ]
 
@@ -41,23 +49,22 @@ replaceUrl : Nav.Key -> Route -> Cmd msg
 replaceUrl key route =
     Nav.replaceUrl key (routeToString route)
 
+pushUrl : Nav.Key -> Route -> Cmd msg
+pushUrl key route =
+    Nav.pushUrl key (routeToString route)
 
 fromUrl : Url -> Maybe Route
 fromUrl url =
-    -- The RealWorld spec treats the fragment like a path.
-    -- This makes it *literally* the path, so we can proceed
-    -- with parsing as if it had been a normal path all along.
-    { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
-        |> Parser.parse parser
+    Parser.parse parser url
 
-
+back : Nav.Key -> Int -> Cmd msg
+back key amount =
+    Nav.back key amount
 
 -- INTERNAL
-
-
 routeToString : Route -> String
 routeToString page =
-    "#/" ++ String.join "/" (routeToPieces page)
+    Url.Builder.absolute (routeToPieces page) []
 
 
 routeToPieces : Route -> List String
@@ -66,14 +73,11 @@ routeToPieces page =
         Home ->
             []
 
-        Root ->
-            []
+        Logout ->
+            [ "logout" ]
 
         Login ->
             [ "login" ]
-
-        Logout ->
-            [ "logout" ]
 
         Admin ->
             [ "admin" ]

@@ -1,6 +1,10 @@
 module Page exposing (Page(..), view)
 import Browser exposing (Document)
-import Html exposing (Html, nav, text, footer)
+import Html exposing (Html, nav, div, text, footer, a, li, ul)
+import Html.Attributes exposing(..)
+import Html.Events exposing (onClick)
+import Route exposing (Route)
+import Api exposing (Cred)
 
 
 type Page
@@ -11,45 +15,34 @@ type Page
     | Login
 
 
-view : Maybe Viewer -> Page -> {title : String , content: Html msg} -> Document msg
-view maybeViewer page {title, content} = 
+view : Maybe Cred -> Page -> {title : String , content: Html msg} -> Document msg
+view cred page {title, content} = 
     { title = title 
-    , body = navbarView page maybeViewer :: content :: [ viewFooter ]
+    , body = navbarView page cred :: content :: []
     }
 
 
 
 
-navbarView : Page -> Maybe Viewer -> Html msg
+navbarView : Page -> Maybe Cred -> Html msg
 navbarView page loggedIn =
     let 
         logo = a [class "navbar-brand", href "/"] [text "matiasStorm"]
-
-        loggedInLinks = 
-            if loggedIn then
-                [ navBarItem Admin { url = "/admin", caption = "Admin" }
-                , li [ class "nav-item" ] 
-                    [ a [ class "nav-link", onClick Logout ] 
-                        [ text "Logout" ] 
-                    ]
-                ]
-            else 
-                [ navBarItem Login { url = "/login", caption = "Login" } ]
         
         links = 
             [ ul [class "navbar-nav", class "mr-auto"] 
-                loggedInLinks
-                    -- navBarItem Home {url="/", caption="Home" }
-                -- , navBarItem Blog { url="/blog", caption="Blog" }
+                [ navBarItem Route.Home {url="/", caption="Home"} 
+                , navBarItem Route.Admin {url="/admin", caption="Admin"} 
+                ]
             ]
 
-        navBarItem : Route -> {url : String, caption: String} -> Html Msg
+        navBarItem : Route -> {url : String, caption: String} -> Html msg
         navBarItem route {url, caption} =
             li [ class "nav-item" ] 
                 [ a [ href url
                     , classList 
                         [ ( "nav-link", True )
-                        , ("active", isActive { link = route, page = page }) 
+                        , ("active", isActive page route) 
                         ] 
                     ] 
                     [ text caption ] 
@@ -72,8 +65,7 @@ isActive : Page -> Route -> Bool
 isActive page route = 
     case (page, route) of
         (Home, Route.Home ) -> True
-        (Blog, Route.Blog ) -> True
         (Admin, Route.Admin) -> True
-        (Login, Route.Login ) -> True
+        -- (Login, Route.Login ) -> True
         _ -> False
 
