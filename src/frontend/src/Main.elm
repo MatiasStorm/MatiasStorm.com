@@ -1,365 +1,216 @@
-module Main exposing (..)
-import Browser
+module Main exposing (main)
+
+import Api exposing (Cred)
+-- import Avatar exposing (Avatar)
+import Browser exposing (Document)
 import Browser.Navigation as Nav
 import Html exposing (..)
-import Html.Attributes exposing (..)
+import Json.Decode as Decode exposing (Value)
+import Page exposing (Page)
 import Page.Home as Home
-import Page.Blog as Blog
+import Page.NotFound as NotFound
+import Page.Blank as Blank 
 import Page.Login as Login
 import Page.Admin as Admin
+import Route exposing (Route)
+import Session exposing (Session)
+import Task
+import Time
 import Url exposing (Url)
-import Url.Parser as Parser exposing(Parser)
-import Url.Builder
-import Http
-import Api exposing (JWT)
-import Json.Encode as JE
-import Json.Decode as JD
-import Ports
-import Html.Events exposing (onClick)
 
 
--- Route
-type Route
-    = Home
-    | Blog
-    | Admin
-    | Login
+type Model
+    = Redirect Session
+    | NotFound Session
+    | Home Home.Model
+    | Login Login.Model
+    | Admin Admin.Model
 
-
-parser : Parser (Route -> a) a
-parser =
-    Parser.oneOf
-        [ Parser.map Home Parser.top
-        , Parser.map Blog (Parser.s "blog")
-        , Parser.map Admin (Parser.s "admin")
-        , Parser.map Login (Parser.s "login")
-        ]
-
-navigateToLogin : Nav.Key -> Cmd Msg
-navigateToLogin key =
-    Url.Builder.absolute ["login"] []
-        |> Nav.pushUrl key
-
--- Page
-type Page
-    = NotFound
-    | HomePage Home.Model
-    | BlogPage Blog.Model
-    | AdminPage Admin.Model
-    | LoginPage Login.Model
 
 
 -- MODEL
-type alias Model = 
-    { page: Page
-    , key: Nav.Key
-    , jwt : Maybe JWT
-    }
-
-initModel : Nav.Key -> String -> Model
-initModel key flags = 
-    { page = NotFound
-    , key = key
-    , jwt = decodeJwt flags
-    }
-
-decodeJwt : String -> Maybe JWT
-decodeJwt jwtJson =
-    case JD.decodeString Api.jwtDecoder jwtJson of
-        Ok jwt -> Just jwt
-        Err _ -> Nothing
-
-init : String -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-    updateUrl url ( initModel key flags )
-
-updateUrl : Url -> Model -> (Model, Cmd Msg)
-updateUrl url model =
-    case Parser.parse parser url of
-        Just Home ->
-            Home.init model.jwt
-                |> toHome model
-
-        Just Blog ->
-            Blog.init
-                |> toBlog model
-
-        Just Admin ->
-            case model.jwt of
-                Just jwt ->
-                    Admin.init model.jwt
-                        |> toAdmin model
-                Nothing ->
-                    ( model
-                    , navigateToLogin model.key
-                    )
-
-        Just Login ->
-            Login.init
-                |> toLogin model
-
-        Nothing ->
-            ( { model | page = NotFound }, Cmd.none )
 
 
+init : Maybe Cred -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init maybeCred url navKey =
+    changeRouteTo (Route.fromUrl url)
+        (Redirect (Session.fromCred navKey maybeCred))
+
+
+
+-- VIEW
+
+
+view : Model -> Document Msg
+view model =
+    let
+        maybeCred =
+            Session.cred (toSession model)
+
+        viewPage page toMsg config =
+            let
+                { title, body } =
+                    Page.view maybeCred page config
+            in
+            { title = title
+            , body = List.map (Html.map toMsg) body
+            }
+    in
+    case model of
+        Redirect _ ->
+            Page.view maybeCred Page.Other Blank.view
+
+        NotFound _ ->
+            Page.view maybeCred Page.Other NotFound.view
+
+        Home home ->
+            viewPage Page.Home GotHomeMsg (Home.view home)
+
+        Login login ->
+            viewPage Page.Login GotLoginMsg (Login.view login)
+
+        Admin admin ->
+            viewPage Page.Admin GotAdminMsg (Admin.view admin)
 
 
 
 -- UPDATE
+
+
 type Msg
-    = LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
+    = ChangedUrl Url
+    | ClickedLink Browser.UrlRequest
     | GotHomeMsg Home.Msg
-    | GotBlogMsg Blog.Msg
-    | GotAdminMsg Admin.Msg
+    | GotSession Session
     | GotLoginMsg Login.Msg
-    | Logout
-    | RefreshToken Admin.Msg (Result Http.Error JWT )
+    | GotAdminMsg Admin.Msg
+
+
+toSession : Model -> Session
+toSession page =
+    case page of
+        Redirect session ->
+            session
+
+        NotFound session ->
+            session
+
+        Home home ->
+            Home.toSession home
+
+        Login login ->
+            Login.toSession login
+
+        Admin admin ->
+            Admin.toSession admin
+
+changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
+changeRouteTo maybeRoute model =
+    let
+        session =
+            toSession model
+        _ = Debug.log "Change route" session
+    in
+    case maybeRoute of
+        Nothing ->
+            ( NotFound session, Cmd.none )
+
+        Just Route.Logout ->
+            ( model, Api.logout )
+
+        Just Route.Home ->
+            Home.init session
+                |> updateWith Home GotHomeMsg model
+
+        Just Route.Login ->
+            Login.init session
+                |> updateWith Login GotLoginMsg model
+
+        Just Route.Admin ->
+            Admin.init session
+                |> updateWith Admin GotAdminMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let 
-        _ = Debug.log "msg" msg
+        _ = Debug.log "Main" msg
     in
-    case msg of
-        LinkClicked urlRequest ->
-          case urlRequest of
-            Browser.Internal url ->
-              ( model, Nav.pushUrl model.key (Url.toString url) )
+    case ( msg, model ) of
+        ( ClickedLink urlRequest, _ ) ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl (Session.navKey (toSession model)) (Url.toString url) )
 
-            Browser.External href ->
-              ( model, Nav.load href )
-
-        UrlChanged url ->
-            updateUrl url model
-
-        GotLoginMsg loginMsg ->
-            case model.page of
-                LoginPage loginModel ->
-                    toLogin model (Login.update loginMsg loginModel)
-
-                _ ->
-                    (model, Cmd.none)
-
-        GotHomeMsg homeMsg ->
-            case model.page of
-                HomePage homeModel ->
-                    toHome model (Home.update homeMsg homeModel)
-                _ ->
-                    (model, Cmd.none)
-
-        GotBlogMsg blogMsg ->
-            case model.page of
-                BlogPage blogModel ->
-                    toBlog model (Blog.update blogMsg blogModel)
-                _ ->
-                    (model, Cmd.none)
-
-        GotAdminMsg adminMsg ->
-            case model.page of
-                AdminPage adminModel ->
-                    toAdmin model (Admin.update adminMsg adminModel)
-                _ ->
-                    (model, Cmd.none)
-
-        RefreshToken adminMsg result ->
-            case result of
-                Ok jwt ->
-                    case model.page of
-                        AdminPage adminModel ->
-                            let
-                                (updatedAdminModel, adminCmd, outMsg) = Admin.update adminMsg {adminModel | jwt = Just jwt}
-                            in
-                            ({model | jwt = Just jwt}, Cmd.batch [Cmd.map GotAdminMsg adminCmd, Ports.saveJwt (Just jwt)] )
-
-                        _ ->
-                            (model, Cmd.none)
-                Err _ ->
-                    (model
-                    , Cmd.batch 
-                        [ navigateToLogin model.key
-                        , Ports.saveJwt Nothing      -- Delete the saved jwt, if refresh doesn't work.
-                        ]
+                Browser.External href ->
+                    ( model
+                    , Nav.load href
                     )
-        
-        Logout ->
-            ( { model | jwt = Nothing }, Ports.saveJwt Nothing )
 
+        ( ChangedUrl url, _ ) ->
+            changeRouteTo (Route.fromUrl url) model
 
-toHome : Model -> (Home.Model, Cmd Home.Msg) -> (Model, Cmd Msg)
-toHome model (homeModel, cmd) =
-    ( {model | page = HomePage homeModel}
-    , Cmd.map GotHomeMsg cmd)
+        ( GotHomeMsg subMsg, Home home ) ->
+            Home.update subMsg home
+                |> updateWith Home GotHomeMsg model
 
-toBlog : Model -> (Blog.Model, Cmd Blog.Msg) -> (Model, Cmd Msg)
-toBlog model (blogModel, cmd) =
-    ( {model | page = BlogPage blogModel}
-    , Cmd.map GotBlogMsg cmd)
+        ( GotLoginMsg subMsg, Login login ) ->
+            Login.update subMsg login
+                |> updateWith Login GotLoginMsg model
 
-toAdmin : Model -> (Admin.Model, Cmd Admin.Msg, Maybe Admin.OutMsg) -> (Model, Cmd Msg)
-toAdmin model (adminModel, cmd, outMsg) =
-    let 
-        redoRequest : Admin.Msg -> Cmd Msg
-        redoRequest requestMethod =
-            case model.jwt of
-                Just jwt ->
-                    Api.refreshToken jwt ( RefreshToken requestMethod)
+        ( GotAdminMsg subMsg, Admin admin ) ->
+            Admin.update subMsg admin
+                |> updateWith Admin GotAdminMsg model
 
-                Nothing ->
-                    navigateToLogin model.key
-    in
-    case outMsg of
-        Just ( Admin.FailedRequest requestMethod ) ->
-            ( { model | page = AdminPage adminModel } 
-            , redoRequest requestMethod
+        ( GotSession session, Redirect _ ) ->
+            ( Redirect session
+            , Route.replaceUrl (Session.navKey session) Route.Home
             )
 
-        Nothing ->
-            ( {model | page = AdminPage adminModel}
-            , Cmd.map GotAdminMsg cmd)
+        ( _, _ ) ->
+            -- Disregard messages that arrived for the wrong page.
+            ( model, Cmd.none )
 
-toLogin : Model -> (Login.Model, Cmd Login.Msg, Maybe Login.OutMsg) -> (Model, Cmd Msg)
-toLogin model (loginModel, cmd, outMsg) =
-    case outMsg of
-        Just ( Login.LoginSuccess jwt ) ->
-            ({ model | page = LoginPage loginModel
-             , jwt = Just jwt
-             }
-            , Cmd.batch 
-                [ Ports.saveJwt ( Just jwt )
-                , Nav.back model.key 1
-                ]
-            )
 
-        Nothing ->
-            ( { model | page = LoginPage loginModel }
-            , Cmd.map GotLoginMsg cmd
-            )
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg model ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
+
 
 
 -- SUBSCRIPTIONS
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    let
-        handlePageSubscriptions : Sub Msg
-        handlePageSubscriptions = 
-            case model.page of
-                AdminPage adminModel ->
-                    Sub.map GotAdminMsg <| Admin.subscriptions adminModel
+    case model of
+        NotFound _ ->
+            Sub.none
 
-                _ ->
-                    Sub.none
-    in
-    Sub.batch [handlePageSubscriptions]
+        Redirect _ ->
+            Session.changes GotSession (Session.navKey (toSession model))
 
--- VIEW
-view : Model -> Browser.Document Msg
-view model =
-    let
-        content =
-            case model.page of
-                HomePage home ->
-                    Home.view home |> Html.map GotHomeMsg
+        Home home ->
+            Sub.map GotHomeMsg (Home.subscriptions home)
 
-                BlogPage blog ->
-                    Blog.view blog |> Html.map GotBlogMsg
+        Login login ->
+            Sub.map GotLoginMsg (Login.subscriptions login)
 
-                AdminPage admin ->
-                    Admin.view admin |> Html.map GotAdminMsg
-
-                LoginPage login ->
-                    Login.view login |> Html.map GotLoginMsg
-
-                NotFound ->
-                    div [] [text "Not found"]
-
-        loggedIn =
-            case model.jwt of
-                Just jwt -> True
-                Nothing -> False
-    in
-    { title = "URL Interceptor"
-    , body =
-        [ navbarView model.page loggedIn
-        , content
-        ]
-    }
-
-
-
-navbarView : Page -> Bool -> Html Msg
-navbarView page loggedIn =
-    let 
-        logo = a [class "navbar-brand", href "/"] [text "matiasStorm"]
-
-        loggedInLinks = 
-            if loggedIn then
-                [ navBarItem Admin { url = "/admin", caption = "Admin" }
-                , li [ class "nav-item" ] 
-                    [ a [ class "nav-link", onClick Logout ] 
-                        [ text "Logout" ] 
-                    ]
-                ]
-            else 
-                [ navBarItem Login { url = "/login", caption = "Login" } ]
-        
-        links = 
-            [ ul [class "navbar-nav", class "mr-auto"] 
-                loggedInLinks
-                    -- navBarItem Home {url="/", caption="Home" }
-                -- , navBarItem Blog { url="/blog", caption="Blog" }
-            ]
-
-        navBarItem : Route -> {url : String, caption: String} -> Html Msg
-        navBarItem route {url, caption} =
-            li [ class "nav-item" ] 
-                [ a [ href url
-                    , classList 
-                        [ ( "nav-link", True )
-                        , ("active", isActive { link = route, page = page }) 
-                        ] 
-                    ] 
-                    [ text caption ] 
-                ]
-    in
-    nav [ classList [ ("navbar", True)
-                    , ("navbar-expand-sm", True)
-                    , ("navbar-light", True)
-                    , ("bg-light", True)
-                    ] 
-        ] 
-        [ logo
-        , div [class "collapse", class "navbar-collapse"] 
-            links 
-        ]
-
-
-isActive : {link : Route, page : Page} -> Bool
-isActive {link, page} = 
-    case (link, page) of
-        (Home, HomePage _ ) -> True
-        (Home,  _ ) -> False
-        (Blog, BlogPage _ ) -> True
-        (Blog, _ ) -> False
-        (Admin, AdminPage _ ) -> True
-        (Admin, _ ) -> False
-        (Login, LoginPage _ ) -> True
-        (Login, _ ) -> False
+        Admin admin ->
+            Sub.map GotAdminMsg (Admin.subscriptions admin)
 
 
 -- MAIN
 
-
-main : Program String Model Msg
+main : Program Value Model Msg
 main =
-  Browser.application
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    , onUrlChange = UrlChanged
-    , onUrlRequest = LinkClicked
-    }
-
-
+    Api.application
+        { init = init
+        , onUrlChange = ChangedUrl
+        , onUrlRequest = ClickedLink
+        , subscriptions = subscriptions
+        , update = update
+        , view = view
+        }

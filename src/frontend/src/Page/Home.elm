@@ -1,23 +1,30 @@
-module Page.Home exposing (view, Model, init, Msg, update)
+module Page.Home exposing 
+    (view
+    , Model
+    , init
+    , Msg
+    , update
+    , toSession
+    , subscriptions
+    )
 import Html exposing (..)
 import Html.Attributes exposing(class, classList)
 import Html.Events exposing (onClick)
-import Api exposing (JWT, PostCategory, Post, getBlogCategories, getBlogPosts)
 import Http
-import Task exposing (Task)
 import Views.MarkdownView exposing (renderMarkdown)
 import Iso8601
 import DateFormat
 import Time
+import Session exposing (Session)
+import Post exposing (getPosts, Post, PostCategory)
 
 
 import SyntaxHighlight as SH
 
 
 type Msg
-    = Click
-    | GotPosts (Result Http.Error (List Post))
-    | GotCategories (Result Http.Error (List PostCategory))
+    = GotPosts (Result Http.Error (List Post))
+    -- | GotCategories (Result Http.Error (List PostCategory))
 
 -- Model
 type Status
@@ -27,42 +34,51 @@ type Status
 
 type alias Model =
     { posts : (List Post)
-    , postCategories : (List PostCategory)
+    -- , postCategories : (List PostCategory)
     , status : Status
-    , jwt : Maybe JWT
+    , session : Session
     }
 
--- Init
-init : Maybe JWT -> (Model, Cmd Msg)
-init jwt =
-    (Model [] [] Loading jwt, Cmd.batch 
-                            [ getBlogCategories GotCategories jwt 
-                            , getBlogPosts GotPosts jwt
-                            ]  
-    )
+initModel : Session -> Model
+initModel session =
+    { posts = []
+    , status = Loading
+    , session = session}
 
+-- Init
+init : Session -> (Model, Cmd Msg)
+init  session =
+    (initModel session, Cmd.batch [getPosts Nothing GotPosts])
+    -- (Model [] [] Loading jwt, Cmd.batch 
+    --                         [ getBlogCategories GotCategories jwt 
+    --                         , getBlogPosts GotPosts jwt
+    --                         ]  
+    -- )
+
+toSession : Model -> Session
+toSession model =
+    model.session
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
+    -- Session.changes GotSession (Session.navKey model.session)
 
 -- Update
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let 
-        _ = Debug.log "Message" msg
-    in
     case msg of
-        Click ->
-            ( {model | status = Loading}, Cmd.none )
+        -- GotCategories result ->
+        --     case result of 
+        --         Ok categoryList ->
+        --             ( { model 
+        --                 | postCategories = categoryList
+        --                 , status = Success 
+        --             }, Cmd.none)
 
-        GotCategories result ->
-            case result of 
-                Ok categoryList ->
-                    ( { model 
-                        | postCategories = categoryList
-                        , status = Success 
-                    }, Cmd.none)
-
-                Err _ ->
-                    ({model | status = Failure}, Cmd.none)
+        --         Err _ ->
+        --             ({model | status = Failure}, Cmd.none)
 
         GotPosts result ->
             case result of
@@ -89,24 +105,30 @@ ourFormatter =
         ]
 
 
-view : Model -> Html Msg
+view : Model -> {title : String, content : Html Msg}
 view model =
-    case model.status of
-        Failure ->
-            text "Cannot load categories"
+    let
+        content = 
+            case model.status of
+                Failure ->
+                    text "Cannot load categories"
 
-        Loading ->
-            text "Loading..."
+                Loading ->
+                    text "Loading..."
 
-        Success ->
-            let
-                renderCategory : PostCategory -> Html Msg
-                renderCategory category =
-                    li [] [text category.category_name]
-            in
-            div [] [
-                div [class "container"] (List.map postView model.posts)
-                ]
+                Success ->
+                    let
+                        renderCategory : PostCategory -> Html Msg
+                        renderCategory category =
+                            li [] [text category.category_name]
+                    in
+                    div [] [
+                        div [class "container"] (List.map postView model.posts)
+                        ]
+    in
+    { title =  "Home" 
+    , content = content
+    }
 
 postView : Post -> Html Msg
 postView post =
