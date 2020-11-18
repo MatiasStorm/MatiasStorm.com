@@ -20,5 +20,5 @@ class SerieViewSet(viewsets.ModelViewSet):
 
 class PostViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser | ReadOnly]
-    queryset = models.Post.objects.all()
+    queryset = models.Post.objects.all().order_by("-created")
     serializer_class = serializers.PostSerializer

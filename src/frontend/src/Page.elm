@@ -13,6 +13,7 @@ type Page
     | Blog
     | Admin
     | Login
+    | About
 
 
 view : Maybe Cred -> Page -> {title : String , content: Html msg} -> Document msg
@@ -27,11 +28,12 @@ view cred page {title, content} =
 navbarView : Page -> Maybe Cred -> Html msg
 navbarView page loggedIn =
     let 
-        logo = a [class "navbar-brand", href "/"] [text "matiasStorm"]
+        logo = a [class "navbar-brand", href "/"] [text "> matias_storm"]
         
         links = 
             [ ul [class "navbar-nav", class "mr-auto"] 
                 [ 
+                    navBarItem Route.About {url="/about", caption="About"}
                     -- navBarItem Route.Home {url="/", caption="Home"} 
                 ]
             ]
@@ -48,12 +50,7 @@ navbarView page loggedIn =
                     [ text caption ] 
                 ]
     in
-    nav [ classList [ ("navbar", True)
-                    , ("navbar-expand-sm", True)
-                    , ("navbar-light", True)
-                    , ("bg-light", True)
-                    ] 
-        ] 
+    nav [ class "navbar navbar-expand-sm navbar-dark bg-dark" ] 
         [ logo
         , div [class "collapse", class "navbar-collapse"] 
             links 
@@ -66,6 +63,7 @@ isActive page route =
     case (page, route) of
         (Home, Route.Home ) -> True
         (Admin, Route.Admin) -> True
+        (About, Route.About) -> True
         -- (Login, Route.Login ) -> True
         _ -> False
 

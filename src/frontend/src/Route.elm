@@ -24,6 +24,7 @@ type Route
     | Logout
     | Login
     | Admin
+    | About
 
 
 parser : Parser (Route -> a) a
@@ -33,6 +34,7 @@ parser =
         , Parser.map Logout (s "logout")
         , Parser.map Login (s "login")
         , Parser.map Admin (s "admin")
+        , Parser.map About (s "about")
         ]
 
 
@@ -81,3 +83,6 @@ routeToPieces page =
 
         Admin ->
             [ "admin" ]
+
+        About ->
+            [ "about" ]

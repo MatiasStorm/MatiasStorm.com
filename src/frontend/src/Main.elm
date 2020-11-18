@@ -12,6 +12,7 @@ import Page.NotFound as NotFound
 import Page.Blank as Blank 
 import Page.Login as Login
 import Page.Admin as Admin
+import Page.About as About
 import Route exposing (Route)
 import Session exposing (Session)
 import Task
@@ -25,6 +26,7 @@ type Model
     | Home Home.Model
     | Login Login.Model
     | Admin Admin.Model
+    | About About.Model
 
 
 
@@ -72,6 +74,9 @@ view model =
         Admin admin ->
             viewPage Page.Admin GotAdminMsg (Admin.view admin)
 
+        About about ->
+            viewPage Page.About GotAboutMsg ( About.view about )
+
 
 
 -- UPDATE
@@ -84,6 +89,7 @@ type Msg
     | GotSession Session
     | GotLoginMsg Login.Msg
     | GotAdminMsg Admin.Msg
+    | GotAboutMsg About.Msg
 
 
 toSession : Model -> Session
@@ -103,6 +109,11 @@ toSession page =
 
         Admin admin ->
             Admin.toSession admin
+
+        About about ->
+            About.toSession about
+
+
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
 changeRouteTo maybeRoute model =
@@ -129,6 +140,9 @@ changeRouteTo maybeRoute model =
         Just Route.Admin ->
             Admin.init session
                 |> updateWith Admin GotAdminMsg model
+
+        Just Route.About ->
+            About.init session |> updateWith About GotAboutMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -161,6 +175,10 @@ update msg model =
         ( GotAdminMsg subMsg, Admin admin ) ->
             Admin.update subMsg admin
                 |> updateWith Admin GotAdminMsg model
+
+        (GotAboutMsg subMsg, About about) ->
+            About.update subMsg about 
+                |> updateWith About GotAboutMsg model
 
         ( GotSession session, Redirect _ ) ->
             ( Redirect session
@@ -200,6 +218,9 @@ subscriptions model =
 
         Admin admin ->
             Sub.map GotAdminMsg (Admin.subscriptions admin)
+
+        About about ->
+            Sub.map GotAboutMsg (About.subscriptions about)
 
 
 -- MAIN
