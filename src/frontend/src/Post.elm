@@ -18,6 +18,7 @@ type alias PostCategory =
     { id : String
     , category_name : String
     , description : String
+    , color : String
     , created : String
     }
 
@@ -25,7 +26,7 @@ type alias Post =
     { id: String
     , title: String
     , text: String
-    , categories : (List String)
+    , categories : (List PostCategory)
     , serie : Maybe String
     , published : Bool
     , created :  String
@@ -58,10 +59,11 @@ updatePost cred post msg =
 -- Decoders
 categoryDecoder : JD.Decoder PostCategory
 categoryDecoder =
-    JD.map4 PostCategory
+    JD.map5 PostCategory
         (JD.field "id" JD.string)
         (JD.field "category_name" JD.string)
         (JD.field "description" JD.string)
+        (JD.field "color" JD.string)
         (JD.field "created" JD.string)
 
 categoriesDecoder : JD.Decoder (List PostCategory)
@@ -74,7 +76,7 @@ postDecoder =
         (JD.field "id" JD.string)
         (JD.field "title" JD.string)
         (JD.field "text" JD.string)
-        (JD.field "categories" (JD.list JD.string))
+        (JD.field "categories" categoriesDecoder)
         (JD.field "serie" (JD.nullable JD.string ))
         (JD.field "published" JD.bool)
         (JD.field "created" JD.string)
@@ -85,12 +87,24 @@ postsDecoder =
     JD.list postDecoder
 
 -- Encoders
+postCategoryEncoder : PostCategory -> JE.Value
+postCategoryEncoder category =
+    JE.object 
+        [ ("id", JE.string category.id)
+        , ("category_name", JE.string category.category_name)
+        , ("description", JE.string category.description)
+        , ("color", JE.string category.color)
+        , ("created", JE.string category.created)
+        ]
+
 postEncoder : Post -> Http.Body
-postEncoder blogPost =
+postEncoder post =
     JE.object
-        [ ("title", JE.string blogPost.title)
-        , ("text", JE.string blogPost.text)
-        , ("categories", JE.list JE.string blogPost.categories)
-        , ("published", JE.bool blogPost.published)
+        [ ("title", JE.string post.title)
+        , ("text", JE.string post.text)
+        , ("categories", JE.list postCategoryEncoder post.categories )
+        , ("published", JE.bool post.published)
         ]
         |> Http.jsonBody
+
+

@@ -7,6 +7,7 @@ class PostCategory (models.Model):
     category_name = models.CharField(max_length=32, null=False, blank=False)
     description = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
+    color = models.CharField(max_length=32, null=False, default="grey")
 
 
 class Serie (models.Model):

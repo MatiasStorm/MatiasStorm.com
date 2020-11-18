@@ -66,10 +66,11 @@ update msg model =
                 updateCategories : Post -> Post
                 updateCategories post =
                     { post | categories = 
-                        List.map (\(id, name) -> id) 
-                        ( Multiselect.getSelectedValues model.postCategoryMultiselectModel ) 
+                        List.filter 
+                            (\c -> List.member c.id 
+                                (List.map (\(id, name) -> id) ( Multiselect.getSelectedValues model.postCategoryMultiselectModel ))) 
+                            model.postCategories
                     }
-
             in
             ({ model | postCategoryMultiselectModel = subModel, post = updateCategories model.post }, Cmd.map Categories subCmd, Nothing)
 
@@ -97,17 +98,17 @@ multiSelectModel post postCategories =
         multiselectCategories categories = List.map (\c -> (c.id, c.category_name)) categories
 
         selectedCategories : List (String, String)
-        selectedCategories = 
-            let 
-                filterById : PostCategory -> Bool
-                filterById category =
-                    List.any ( \i -> category.id == i) post.categories
+        selectedCategories = List.map (\c -> (c.id, c.category_name)) post.categories
+            -- let 
+            --     filterById : PostCategory -> Bool
+            --     filterById category =
+            --         List.any ( \i -> category.id == i) post.categories
 
-                filteredCategories : List PostCategory
-                filteredCategories =  List.filter filterById postCategories
+            --     filteredCategories : List PostCategory
+            --     filteredCategories =  List.filter filterById postCategories
 
-            in
-            multiselectCategories filteredCategories
+            -- in
+            -- multiselectCategories filteredCategories
     in
     Multiselect.populateValues model (multiselectCategories postCategories) selectedCategories
 

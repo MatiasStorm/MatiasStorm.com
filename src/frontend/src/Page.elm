@@ -31,8 +31,8 @@ navbarView page loggedIn =
         
         links = 
             [ ul [class "navbar-nav", class "mr-auto"] 
-                [ navBarItem Route.Home {url="/", caption="Home"} 
-                , navBarItem Route.Admin {url="/admin", caption="Admin"} 
+                [ 
+                    -- navBarItem Route.Home {url="/", caption="Home"} 
                 ]
             ]
 
