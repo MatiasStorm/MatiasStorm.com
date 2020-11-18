@@ -1,4 +1,4 @@
-module Post exposing 
+module Data.Post exposing 
     ( PostCategory
     , Post
     , getPosts

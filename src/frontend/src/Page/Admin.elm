@@ -11,7 +11,7 @@ module Page.Admin exposing
 import Views.MarkdownView exposing (renderMarkdown)
 import Html exposing (..)
 import Api exposing (Cred)
-import Post exposing (Post, PostCategory, getPosts, getPostCategories)
+import Data.Post as Post exposing (Post, PostCategory, getPosts, getPostCategories)
 import Route
 import Html.Attributes as Attr
 import Session exposing (Session)
@@ -289,7 +289,7 @@ postTableView model =
     htmlIf 
         ( not model.showPostForm
         , div [ Attr.class "col-6" ] 
-            [ h2 [] [ text "Blog Posts:" ]
+            [ h2 [] [ text "Post Posts:" ]
             , div [] (List.map postRow model.posts)
             ]
         )

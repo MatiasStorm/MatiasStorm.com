@@ -1,5 +1,5 @@
 module Views.PostView exposing (view)
-import Post exposing (Post, PostCategory)
+import Data.Post exposing (Post, PostCategory)
 import Iso8601
 import DateFormat
 import Time
@@ -18,8 +18,8 @@ ourFormatter =
         , DateFormat.yearNumber
         ]
 
-view : List PostCategory -> Post -> Html msg
-view allPostCategories post = 
+view : Post -> Html msg
+view post = 
     let
         formatDate : String -> String
         formatDate date = 
@@ -46,8 +46,8 @@ view allPostCategories post =
 
 postCategoryView : PostCategory -> Html msg
 postCategoryView category =
-    h4 [class "d-inline"] 
-        [ span [class "badge badge-secondary mx-1 p-2", style "background-color" category.color] 
+    h4 [class "d-inline m-0"] 
+        [ span [class "badge badge-secondary mr-2 p-2", style "background-color" category.color] 
             [ text category.category_name ]
         ]
 

@@ -10,7 +10,7 @@ import Api exposing (Cred)
 type Page
     = Other
     | Home
-    | Blog
+    | Post
     | Admin
     | Login
     | About
@@ -32,9 +32,7 @@ navbarView page loggedIn =
         
         links = 
             [ ul [class "navbar-nav", class "mr-auto"] 
-                [ 
-                    navBarItem Route.About {url="/about", caption="About"}
-                    -- navBarItem Route.Home {url="/", caption="Home"} 
+                [ navBarItem Route.About {url="/about", caption="About"}
                 ]
             ]
 
@@ -64,6 +62,7 @@ isActive page route =
         (Home, Route.Home ) -> True
         (Admin, Route.Admin) -> True
         (About, Route.About) -> True
+        (Post, Route.Post) -> True
         -- (Login, Route.Login ) -> True
         _ -> False
 

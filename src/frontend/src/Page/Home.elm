@@ -13,7 +13,7 @@ import Html.Events exposing (onClick)
 import Http
 import Views.MarkdownView exposing (renderMarkdown)
 import Session exposing (Session)
-import Post exposing (getPosts, getPostCategories, Post, PostCategory)
+import Data.Post exposing (getPosts, getPostCategories, Post, PostCategory)
 import Views.PostView as PostView
 
 
@@ -115,7 +115,7 @@ view model =
                     in
                     div [] [
                         div [class "container"] 
-                            (List.map ( PostView.view model.postCategories ) model.posts)
+                            (List.map ( PostView.view) model.posts)
                         ]
     in
     { title =  "Home" 

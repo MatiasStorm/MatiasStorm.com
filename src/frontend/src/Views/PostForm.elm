@@ -7,7 +7,7 @@ module Views.PostForm exposing
     , view
     , getPost
     , subscriptions)
-import Post exposing (PostCategory, Post)
+import Data.Post exposing (PostCategory, Post)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events exposing (onInput, onClick, onCheck)

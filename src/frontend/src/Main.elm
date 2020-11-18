@@ -13,6 +13,7 @@ import Page.Blank as Blank
 import Page.Login as Login
 import Page.Admin as Admin
 import Page.About as About
+import Page.Post as Post
 import Route exposing (Route)
 import Session exposing (Session)
 import Task
@@ -27,6 +28,7 @@ type Model
     | Login Login.Model
     | Admin Admin.Model
     | About About.Model
+    | Post Post.Model
 
 
 
@@ -77,6 +79,9 @@ view model =
         About about ->
             viewPage Page.About GotAboutMsg ( About.view about )
 
+        Post blog ->
+            viewPage Page.Post GotPostMsg ( Post.view blog )
+
 
 
 -- UPDATE
@@ -90,6 +95,7 @@ type Msg
     | GotLoginMsg Login.Msg
     | GotAdminMsg Admin.Msg
     | GotAboutMsg About.Msg
+    | GotPostMsg Post.Msg
 
 
 toSession : Model -> Session
@@ -113,6 +119,8 @@ toSession page =
         About about ->
             About.toSession about
 
+        Post blog ->
+            Post.toSession blog
 
 
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
@@ -143,6 +151,9 @@ changeRouteTo maybeRoute model =
 
         Just Route.About ->
             About.init session |> updateWith About GotAboutMsg model
+
+        Just Route.Post ->
+            Post.init session |> updateWith Post GotPostMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -179,6 +190,11 @@ update msg model =
         (GotAboutMsg subMsg, About about) ->
             About.update subMsg about 
                 |> updateWith About GotAboutMsg model
+
+        (GotPostMsg subMsg, Post blog) ->
+            Post.update subMsg blog 
+                |> updateWith Post GotPostMsg model
+
 
         ( GotSession session, Redirect _ ) ->
             ( Redirect session
@@ -222,6 +238,8 @@ subscriptions model =
         About about ->
             Sub.map GotAboutMsg (About.subscriptions about)
 
+        Post blog ->
+            Sub.map GotPostMsg (Post.subscriptions blog)
 
 -- MAIN
 
