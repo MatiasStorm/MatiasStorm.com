@@ -8,8 +8,8 @@ class PostCategorySerializer (serializers.ModelSerializer):
             "id" ,
             "category_name",
             "color",
-            "description",
-            "created",
+            # "description",
+            # "created",
         ]
 
 class SerieSerializer (serializers.ModelSerializer):
@@ -22,18 +22,13 @@ class SerieSerializer (serializers.ModelSerializer):
             "created",
         ]
 
-
-
 class PostSerializer (serializers.ModelSerializer):
-    categories = PostCategorySerializer(many=True, read_only=True)
-
     class Meta:
         model = models.Post
         fields = [ 
             "id", 
             "title",
             "text",
-            # "image_path",
             "categories",
             "serie",
             "published",
@@ -41,19 +36,42 @@ class PostSerializer (serializers.ModelSerializer):
             "updated"
         ]
 
-    def fix_validated_data(self, validated_data):
+    def fix_text(self, validated_data):
         text = validated_data.get("text", "")
         validated_data["text"] = text.replace("\r", "")
         return validated_data
 
     def update(self, instance, validated_data):
-        validated_data = self.fix_validated_data(validated_data)
+        validated_data = self.fix_text(validated_data)
         return super().update(instance, validated_data)
-    
 
     def create(self, validated_data):
-        validated_data = self.fix_validated_data(validated_data)
+        validated_data = self.fix_text(validated_data)
         return super().create(validated_data)
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        categories = []
+        for category_id in ret.get("categories"):
+            category = models.PostCategory.objects.get(pk=category_id)
+            category_serializer = PostCategorySerializer()
+            categories.append(category_serializer.to_representation(category))
+        ret["categories"] = categories
+        return ret
+
+class StrippedPostSerializer(serializers.ModelSerializer):
+    categories = PostCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = models.Post
+        fields = [ 
+            "id", 
+            "title",
+            "categories",
+            "serie",
+            "published",
+            "created",
+        ]
 
 
 

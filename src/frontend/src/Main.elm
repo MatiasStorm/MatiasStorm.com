@@ -152,8 +152,8 @@ changeRouteTo maybeRoute model =
         Just Route.About ->
             About.init session |> updateWith About GotAboutMsg model
 
-        Just Route.Post ->
-            Post.init session |> updateWith Post GotPostMsg model
+        Just ( Route.Post postId ) ->
+            Post.init session postId |> updateWith Post GotPostMsg model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

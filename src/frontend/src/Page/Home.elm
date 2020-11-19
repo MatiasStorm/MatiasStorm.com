@@ -13,14 +13,19 @@ import Html.Events exposing (onClick)
 import Http
 import Views.MarkdownView exposing (renderMarkdown)
 import Session exposing (Session)
-import Data.Post exposing (getPosts, getPostCategories, Post, PostCategory)
+import Route
+import Data.Post as PostData exposing (Post)
+import Data.PostCategory as CategoryData exposing (PostCategory)
 import Views.PostView as PostView
+import Views.StrippedPostView as StrippedPostView
+import Data.StrippedPost as StrippedPostData exposing (StrippedPost)
+import Html.Attributes exposing (style)
 
 
 type Msg
-    = GotPosts (Result Http.Error (List Post))
-    | GotCategories (Result Http.Error (List PostCategory))
+    = GotStrippedPosts (Result Http.Error (List StrippedPost))
     | GotSession Session
+    | GoToPost String
 
 -- Model
 type Status
@@ -29,8 +34,7 @@ type Status
     | Success
 
 type alias Model =
-    { posts : (List Post)
-    , postCategories : (List PostCategory)
+    { posts : (List StrippedPost)
     , status : Status
     , session : Session
     }
@@ -38,7 +42,6 @@ type alias Model =
 initModel : Session -> Model
 initModel session =
     { posts = []
-    , postCategories = []
     , status = Loading
     , session = session
     }
@@ -48,8 +51,7 @@ init : Session -> (Model, Cmd Msg)
 init  session =
     (initModel session
     , Cmd.batch 
-        [ getPosts Nothing GotPosts
-        , getPostCategories Nothing GotCategories
+        [ StrippedPostData.getCount 5 Nothing GotStrippedPosts
         ]
     )
 
@@ -69,18 +71,7 @@ update msg model =
         GotSession session ->
             ( { model | session = session }, Cmd.none)
 
-        GotCategories result ->
-            case result of 
-                Ok categoryList ->
-                    ( { model 
-                        | postCategories = categoryList
-                        , status = Success 
-                    }, Cmd.none)
-
-                Err _ ->
-                    ({model | status = Failure}, Cmd.none)
-
-        GotPosts result ->
+        GotStrippedPosts result ->
             case result of
                 Ok postList ->
                     ( { model 
@@ -91,11 +82,16 @@ update msg model =
                 Err _ ->
                     ({model | status = Failure}, Cmd.none)
 
+        GoToPost postId ->
+            let
+                key = Session.navKey model.session
+                route = Route.Post postId
+            in
+            (model, Route.pushUrl key route)
+
+
 
 -- View
-
-
-
 view : Model -> {title : String, content : Html Msg}
 view model =
     let
@@ -108,17 +104,22 @@ view model =
                     text "Loading..."
 
                 Success ->
-                    let
-                        renderCategory : PostCategory -> Html Msg
-                        renderCategory category =
-                            li [] [text category.category_name]
-                    in
                     div [] [
                         div [class "container"] 
-                            (List.map ( PostView.view) model.posts)
+                            (List.map postView model.posts)
                         ]
     in
     { title =  "Home" 
     , content = content
     }
+
+postView : StrippedPost -> Html Msg
+postView post =
+    div [ onClick ( GoToPost post.id )
+        , style "cursor" "pointer"
+        ] 
+        [StrippedPostView.view post]
+
+
+
 

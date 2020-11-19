@@ -4,7 +4,7 @@ import uuid
 # Create your models here.
 class PostCategory (models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    category_name = models.CharField(max_length=32, null=False, blank=False)
+    category_name = models.CharField(max_length=32, null=False, blank=False, unique=True)
     description = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     color = models.CharField(max_length=32, null=False, default="grey")

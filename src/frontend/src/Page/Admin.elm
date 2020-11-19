@@ -11,7 +11,8 @@ module Page.Admin exposing
 import Views.MarkdownView exposing (renderMarkdown)
 import Html exposing (..)
 import Api exposing (Cred)
-import Data.Post as Post exposing (Post, PostCategory, getPosts, getPostCategories)
+import Data.Post as PostData exposing (Post)
+import Data.PostCategory as CategoryData exposing (PostCategory)
 import Route
 import Html.Attributes as Attr
 import Session exposing (Session)
@@ -111,9 +112,9 @@ update msg model =
                 (formModel, cmd, outMsg) = PostForm.update postFormMsg model.postFormModel
                 requestMethod =
                     if model.newPost then
-                        Post.createPost
+                        PostData.create
                     else
-                        Post.updatePost
+                        PostData.update
 
                 doRequest : Post -> Cmd Msg
                 doRequest post =
@@ -199,8 +200,8 @@ init session =
         commands =
             case Session.cred session of
                 Just cres -> 
-                    [ getPosts (Session.cred session) GotPosts
-                    , getPostCategories (Session.cred session) GotCategories
+                    [ PostData.list (Session.cred session) GotPosts
+                    , CategoryData.list (Session.cred session) GotCategories
                     ]
                 Nothing -> [ Route.pushUrl (Session.navKey session) Route.Login ]
     in

@@ -62,7 +62,7 @@ isActive page route =
         (Home, Route.Home ) -> True
         (Admin, Route.Admin) -> True
         (About, Route.About) -> True
-        (Post, Route.Post) -> True
+        -- (Post, Route.Post) -> True
         -- (Login, Route.Login ) -> True
         _ -> False
 

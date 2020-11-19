@@ -1,35 +1,15 @@
 module Views.PostView exposing (view)
-import Data.Post exposing (Post, PostCategory)
-import Iso8601
-import DateFormat
-import Time
+import Data.Post exposing (Post)
+import Data.PostCategory exposing (PostCategory)
 import Html.Attributes exposing (class, style)
 import Html exposing (..)
 import Views.MarkdownView exposing (renderMarkdown)
+import Utils.DateFormat exposing (formatDate)
 
 
-ourFormatter : Time.Zone -> Time.Posix -> String
-ourFormatter =
-    DateFormat.format
-        [ DateFormat.monthNameFull
-        , DateFormat.text " "
-        , DateFormat.dayOfMonthSuffix
-        , DateFormat.text ", "
-        , DateFormat.yearNumber
-        ]
 
 view : Post -> Html msg
 view post = 
-    let
-        formatDate : String -> String
-        formatDate date = 
-            case Iso8601.toTime date of
-                Ok time ->
-                    ourFormatter Time.utc time
-
-                Err error->
-                    "No created time"
-    in
     div [class "card my-3"] 
         [ div [class "card-body"] 
             [ h1 [class "card-title mb-0"] [text post.title] 

@@ -6,12 +6,18 @@ type Msg
     = Click
 
 type alias Model =
-    { session: Session }
+    { session: Session 
+    , postId : String
+    }
 
 
-init : Session -> (Model, Cmd Msg)
-init session =
-    ({session = session}, Cmd.none)
+init : Session -> String -> (Model, Cmd Msg)
+init session postId =
+    ( 
+        { session = session
+        , postId = postId
+        }
+    , Cmd.none)
 
 subscriptions : Model -> Sub Msg
 subscriptions model = Sub.none
@@ -29,5 +35,5 @@ update msg model =
 view : Model -> {title: String, content: Html Msg}
 view model =
     { title = "Post"
-    , content = div [] [text "This is Post"]
+    , content = div [] [text ( "This is Post " ++ model.postId )]
     }

@@ -25,7 +25,7 @@ type Route
     | Login
     | Admin
     | About
-    | Post
+    | Post String
 
 
 parser : Parser (Route -> a) a
@@ -36,7 +36,7 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map Admin (s "admin")
         , Parser.map About (s "about")
-        , Parser.map Post (s "post")
+        , Parser.map Post (s "post" </> string)
         ]
 
 
@@ -89,5 +89,5 @@ routeToPieces page =
         About ->
             [ "about" ]
 
-        Post ->
-            [ "blog" ]
+        Post string ->
+            [ "post", string ]
