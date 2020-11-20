@@ -43,6 +43,11 @@ class TestSprippedPostViewSet():
         response = api_client.get(STRIPPED_POST_URL + param_string + date)
         assert len( response.data ) == 0
 
+    def test_asc(self, api_client, django_db_setup):
+        param_string = "?asc=true"
+        response = api_client.get(STRIPPED_POST_URL + param_string)
+        assert response.data[0]["id"] == "dbd155d5-0cae-4f4a-bc40-997218650763"
+
 @pytest.mark.django_db
 class TestPostViewSet():
     def test_count(self, api_client, django_db_setup):

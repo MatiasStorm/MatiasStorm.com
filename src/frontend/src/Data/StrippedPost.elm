@@ -24,14 +24,14 @@ type alias StrippedPost =
 getCountAfter : Int -> String -> Maybe Cred -> (Result Http.Error (List StrippedPost) -> msg) -> Cmd msg
 getCountAfter count after cred msg =
     let
-        params = Just ( CountAndAfter count after )
+        params = Just ( CountAndAfter count after (Just True) )
     in
     Api.get (strippedPost params ) cred listDecoder msg
 
 getCountBefore : Int -> String -> Maybe Cred -> (Result Http.Error (List StrippedPost) -> msg) -> Cmd msg
 getCountBefore count before cred msg =
     let
-        params = Just ( CountAndBefore count before )
+        params = Just ( CountAndBefore count before Nothing )
     in
     Api.get (strippedPost params ) cred listDecoder msg
 

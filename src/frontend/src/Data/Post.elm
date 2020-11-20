@@ -2,6 +2,7 @@ module Data.Post exposing
     ( Post
     , list
     , create
+    , get
     , update
     )
 import Api exposing (Cred)
@@ -27,6 +28,10 @@ type alias Post =
 list : Maybe Cred -> (Result Http.Error (List Post) -> msg) -> Cmd msg
 list maybeCred msg =
     Api.get ( Endpoint.post Nothing) maybeCred listDecoder msg
+
+get : String -> Maybe Cred -> (Result Http.Error Post -> msg) -> Cmd msg
+get postId maybeCred msg =
+    Api.get ( Endpoint.post (Just postId )) maybeCred decoder msg
 
 
 create : Cred -> Post -> (Result Http.Error Post -> msg) -> Cmd msg

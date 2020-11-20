@@ -86,10 +86,10 @@ postCategory =
 
 type StrippedPostQueryParams 
     = Count Int
-    | Before String
-    | After String
-    | CountAndBefore Int String
-    | CountAndAfter Int String
+    | Before String ( Maybe Bool )
+    | After String ( Maybe Bool )
+    | CountAndBefore Int String ( Maybe Bool )
+    | CountAndAfter Int String ( Maybe Bool )
 
 strippedPost : Maybe StrippedPostQueryParams -> Endpoint
 strippedPost queryParams =
@@ -97,19 +97,25 @@ strippedPost queryParams =
 
 strippedPostQueryParams : Maybe StrippedPostQueryParams -> List QueryParameter
 strippedPostQueryParams queryParams =
+    let 
+        getOrder maybeAsc =
+            case maybeAsc of
+                Just asc -> string "asc" "true"
+                Nothing -> string "" ""
+    in
     case queryParams of
         Nothing ->
             []
         Just ( Count count )->
             [int "count" count]
-        Just ( Before date ) ->
-            [string "before" date]
-        Just ( After date ) ->
-            [string "after" date]
-        Just ( CountAndBefore count date) -> 
-            [int "count" count, string "before" date]
-        Just ( CountAndAfter count date ) ->
-            [int "count" count, string "after" date]
+        Just ( Before date maybeAsc) ->
+            [string "before" date, getOrder maybeAsc]
+        Just ( After date maybeAsc) ->
+            [string "after" date, getOrder maybeAsc]
+        Just ( CountAndBefore count date maybeAsc) -> 
+            [int "count" count, string "before" date, getOrder maybeAsc]
+        Just ( CountAndAfter count date maybeAsc) ->
+            [int "count" count, string "after" date, getOrder maybeAsc]
 
 
 

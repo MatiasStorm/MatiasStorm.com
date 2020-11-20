@@ -22,7 +22,7 @@ class SerieViewSet(viewsets.ModelViewSet):
 
 class PostViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser | ReadOnly]
-    queryset = models.Post.objects.all().order_by("-created")
+    queryset = models.Post.objects.all()
     serializer_class = serializers.PostSerializer
 
     def get_queryset(self):
@@ -40,12 +40,20 @@ class StrippedPostViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = self.queryset
+        asc = self.request.query_params.get("asc", None)
+        if asc:
+            queryset = queryset.order_by("created")
+        else:
+            queryset = queryset.order_by("-created")
+
         after: str = self.request.query_params.get("after", None)
         if after:
             queryset = queryset.filter(created__gt=datetime.datetime.strptime(after, "%Y-%m-%dT%H:%M:%S.%f"))
+
         before: str = self.request.query_params.get("before", None)
         if before:
             queryset = queryset.filter(created__lt=datetime.datetime.strptime(before, "%Y-%m-%dT%H:%M:%S.%f"))
+
         count: int = int( self.request.query_params.get("count", 0) )
         if (count > 0):
             return queryset[0: count]
