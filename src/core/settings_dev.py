@@ -10,25 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
-from .settings import ( 
-    BASE_DIR,
-    SECRET_KEY,
-    DEBUG,
-    INSTALLED_APPS,
-    MIDDLEWARE,
-    ROOT_URLCONF,
-    TEMPLATES,
-    WSGI_APPLICATION,
-    AUTH_PASSWORD_VALIDATORS,
-    LANGUAGE_CODE,
-    TIME_ZONE,
-    USE_I18N,
-    USE_L10N,
-    USE_TZ,
-    STATIC_URL,
-    REST_FRAMEWORK,
-    CORS_ORIGIN_WHITELIST
-)
+from .settings import *
 
 ALLOWED_HOSTS = ["*"]
 

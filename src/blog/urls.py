@@ -3,7 +3,7 @@ from rest_framework import routers
 from . import views
 
 
-router = routers.DefaultRouter()
+router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'post_category', views.PostCategoryViewSet, basename="post-category")
 router.register(r'serie', views.SerieViewSet, basename="serie")
 router.register(r'post', views.PostViewSet, basename="post")

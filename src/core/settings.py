@@ -26,7 +26,7 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 DEBUG = os.environ.get( "DJANGO_DEBUG", "" ) != "False"
 
 # Application definition
-APPEND_SLASH = False
+APPEND_SLASH=False
 
 INSTALLED_APPS = [
     'django.contrib.admin',
