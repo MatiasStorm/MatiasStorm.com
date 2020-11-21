@@ -1,0 +1,181 @@
+[
+    {
+        "fields": {
+            "category_name": "Spring",
+            "color": "#6db33f",
+            "created": "2020-10-28T19:09:26.894",
+            "description": ""
+        },
+        "model": "blog.postcategory",
+        "pk": "165ac5e1-c196-4d80-aa60-f02e3b5eaacd"
+    },
+    {
+        "fields": {
+            "category_name": "Java",
+            "color": "#b07219",
+            "created": "2020-10-27T17:31:38.384",
+            "description": ""
+        },
+        "model": "blog.postcategory",
+        "pk": "583c8452-8a28-4169-8d49-76a2c245dd9e"
+    },
+    {
+        "fields": {
+            "category_name": "React",
+            "color": "#61dafb",
+            "created": "2020-10-28T19:09:31.718",
+            "description": ""
+        },
+        "model": "blog.postcategory",
+        "pk": "597842d0-61fd-41e1-b40c-47075cf6870e"
+    },
+    {
+        "fields": {
+            "category_name": "Thymeleaf",
+            "color": "#005f0f",
+            "created": "2020-10-28T19:09:38.049",
+            "description": ""
+        },
+        "model": "blog.postcategory",
+        "pk": "67307d08-110b-48d2-a7fd-bac60736e9e2"
+    },
+    {
+        "fields": {
+            "category_name": "Elm",
+            "color": "#60B5CC",
+            "created": "2020-10-28T19:09:39.749",
+            "description": ""
+        },
+        "model": "blog.postcategory",
+        "pk": "b5533e48-df31-4365-a8c0-3893a70cba48"
+    },
+    {
+        "fields": {
+            "categories": [
+                "165ac5e1-c196-4d80-aa60-f02e3b5eaacd"
+            ],
+            "created": "2020-11-08T19:49:24.328",
+            "published": true,
+            "serie": null,
+            "text": "bla blab",
+            "title": "This is a new post",
+            "updated": "2020-11-08T19:49:24.328"
+        },
+        "model": "blog.post",
+        "pk": "0c47bca2-9c10-47ee-9ec9-a2604e8b45da"
+    },
+    {
+        "fields": {
+            "categories": [
+                "165ac5e1-c196-4d80-aa60-f02e3b5eaacd",
+                "583c8452-8a28-4169-8d49-76a2c245dd9e",
+                "597842d0-61fd-41e1-b40c-47075cf6870e",
+                "67307d08-110b-48d2-a7fd-bac60736e9e2",
+                "b5533e48-df31-4365-a8c0-3893a70cba48"
+            ],
+            "created": "2020-10-29T14:35:12.076",
+            "published": true,
+            "serie": null,
+            "text": "bla \n`code`adfasdf",
+            "title": "new post (EDddd",
+            "updated": "2020-10-31T15:01:03.297"
+        },
+        "model": "blog.post",
+        "pk": "751f1959-54cf-4ee9-8d0c-a64e95211537"
+    },
+    {
+        "fields": {
+            "categories": [
+                "583c8452-8a28-4169-8d49-76a2c245dd9e"
+            ],
+            "created": "2020-10-28T07:00:52.790",
+            "published": true,
+            "serie": null,
+            "text": "akvjakl\u00e6sdj sdf \n\n sad f\nsadf \nsafd \nsdf",
+            "title": "Blog post test",
+            "updated": "2020-10-29T14:32:09.395"
+        },
+        "model": "blog.post",
+        "pk": "baab03da-990f-4ba7-b192-0f4aa7072abc"
+    },
+    {
+        "fields": {
+            "categories": [
+                "165ac5e1-c196-4d80-aa60-f02e3b5eaacd",
+                "583c8452-8a28-4169-8d49-76a2c245dd9e"
+            ],
+            "created": "2020-11-08T18:48:50.526",
+            "published": true,
+            "serie": null,
+            "text": "bla \n`code`adfasdf",
+            "title": "POST MAN TEST",
+            "updated": "2020-11-08T18:48:50.526"
+        },
+        "model": "blog.post",
+        "pk": "c1a3f897-f648-4666-8276-cec832359109"
+    },
+    {
+        "fields": {
+            "categories": [
+                "165ac5e1-c196-4d80-aa60-f02e3b5eaacd",
+                "583c8452-8a28-4169-8d49-76a2c245dd9e"
+            ],
+            "created": "2020-10-27T17:32:15.317",
+            "published": false,
+            "serie": null,
+            "text": "## Introduction\n\nAll the <br>\ncode is available at [github](https://github.com/MatiasStorm/TodoApp).\n\n### Prerequisite\n-   Install an IDE for code editing and setting up a spring-boot project (I used Intellij IDEA)\n-   Install MySQL server\n\n\n## Initial setup  \nFirst create a blank spring project and call it **todoapp**, if you don't know how to do it follow this [guide]( https://spring.io/guides/gs/spring-boot/ ).\n\nWhen you are done you should have a directory structure somewhat like this:\n(Insert project strucuture)\n\n### Adding maven dependencies\nIf you open your `pom.xml` file you should have a section with dependencies looking like this:\n```xml\n    <dependencies>\n        \n        <dependency>\n            (..)\n        </dependency>\n        \n        <dependency>\n            (..)\n        </dependency>\n        \n    </dependencies>\n```\n\nGo ahead and add the following dependencies into you `pom.xlm` file, deleting the old ones if you have any duplicates:\n```xml\n    <dependencies>\n    \n        <!-- JDBC, java database API used to communicate with MySQL through java. -->\n        <dependency>\n            <groupId>org.springframework.boot</groupId>\n            <artifactId>spring-boot-starter-jdbc</artifactId>\n        </dependency>\n\n        <!-- MySQL java driver, used by JDBC to talk to MySQL. -->\n        <dependency>\n            <groupId>mysql</groupId>\n            <artifactId>mysql-connector-java</artifactId>\n            <version>8.0.22</version>\n        </dependency>\n\n        <!-- Thymeleaf, a server-side template engine. -->\n        <dependency>\n            <groupId>org.springframework.boot</groupId>\n            <artifactId>spring-boot-starter-thymeleaf</artifactId>\n        </dependency>\n        \n        <!-- The spring boot framework. -->\n        <dependency>\n            <groupId>org.springframework.boot</groupId>\n            <artifactId>spring-boot-starter-web</artifactId>\n        </dependency>\n\n        <!-- Spring boot devtools, used to hot reload static content. -->\n        <dependency>\n            <groupId>org.springframework.boot</groupId>\n            <artifactId>spring-boot-devtools</artifactId>\n            <scope>runtime</scope>\n            <optional>true</optional>\n        </dependency>\n        \n        <!-- Spring boot test --> \n        <dependency>\n            <groupId>org.springframework.boot</groupId>\n            <artifactId>spring-boot-starter-test</artifactId>\n            <scope>test</scope>\n            <exclusions>\n                <exclusion>\n                    <groupId>org.junit.vintage</groupId>\n                    <artifactId>junit-vintage-engine</artifactId>\n                </exclusion>\n            </exclusions>\n        </dependency>\n        \n    </dependencies>\n```\n\n\n### Database connection\nFirst we need to create a new MySQL database, you do that by executing the following commands:\n```bash\n$ mysql -h localhost -p 3306 -u [username] -p\nEnter password: [password]\n```\nreplace username and password with the credentials you provided when you install mysql server.\n\nNow you should be in MySQL monitor, type this command to create a new database:\n```sql\nCREATE DATABASE `todoapp_db`\n```\n\nNow that we have our database we can connect to it from Spring.\nOpen your `application.properties` file and add the following:\n```\nspring.datasource.url=jdbc:mysql://localhost:3306/[database]?serverTimezone=UTC\nspring.datasource.username=[username]\nspring.datasource.password=[password]\nspring.datasource.driver-class-name=com.mysql.jdbc.Driver\nspring.jpa.database-platform = org.hibernate.dialect.MySQL5Dialect\n```\nReplacing database with `todoapp_db` if created the database in the prevoius step, otherwise feel free to use a different database.\nAlso replace username and password with the username and password of the user you used to create the database.\n\n\n### Run\nNow you should be able to run your application with this command:\n`./mvn spring-boot:run` - Linux\n`./mvnw spring-boot:run` - Windows\n\n\n## Creating the app\nFirst we create a todo model. To do that navigate to `src/java/todoapp/app` and create a new folder called `models`.\n\nWithin that folder create a file called `Todo.java` which should contain:\n```javascript\npackage todoapp.app.models;\nimport java.util.Date;\n\npublic class Todo {\n    private int id;       // The id of the todo\n    private String text;  // The todo text\n    private Date created; // When it was created\n    private boolean done; // Marked as done or not\n\n    public Todo(){}\n\n    public Todo(String text) {\n        this.text = text;\n    }\n\n    public Todo(int id, String text, boolean done){\n        this.id = id;\n        this.text = text;\n        this.done = done;\n    }\n\n    public String getText() {\n        return text;\n    }\n\n    public void setText(String text) {\n        this.text = text;\n    }\n\n    public boolean isDone() {\n        return done;\n    }\n\n    public void setDone(boolean done) {\n        this.done = done;\n    }\n\n    public int getId() {\n        return id;\n    }\n\n    public void setId(int id) {\n        this.id = id;\n    }\n\n    public Date getCreated() {\n        return created;\n    }\n\n    public void setCreated(Date created) {\n        this.created = created;\n    }\n}\n```\n\n\nThen we will create a controller to handle all the POST and GET request we recive from the browser.\nFirst create a `controller` folder in `/src/java/todoapp/app/`\nWithin that folder create a new file called `TodoController.java` which will contain:\n```\n\n```\n\n\n\nNow create a `index.html` file in `src/resources/templates` and fill it with:\n```xml\n<!DOCTYPE html>\n<html lang=\"en\" xmlns:th=\"http://www.w3.org/1999/xhtml\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>index</title>\n    <link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css\"\n          integrity=\"sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T\" crossorigin=\"anonymous\">\n    <script src=\"https://code.jquery.com/jquery-3.3.1.slim.min.js\"\n            integrity=\"sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo\"\n            crossorigin=\"anonymous\"></script>\n    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js\"\n            integrity=\"sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1\"\n            crossorigin=\"anonymous\"></script>\n    <script src=\"https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js\"\n            integrity=\"sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM\"\n            crossorigin=\"anonymous\"></script>\n</head>\n<body>\n<div class=\"container width-25 mt-3\">\n    <div class=\"row justify-content-center\">\n        <form action=\"#\" id=\"createForm\" class=\"col-8\" th:action=\"@{/createTodo}\" th:object=\"${todo}\" method=\"post\">\n            <div class=\"row\">\n                <div class=\"form-group col-8 col-md-10 col-sm-8 row\">\n                    <input type=\"text\" th:field=\"*{text}\" class=\"form-control\" id=\"todoText\"\n                           placeholder=\"todo text...\">\n                </div>\n                <div class=\"col-4 col-md-2 col-sm-4 pr-0\">\n                    <button type=\"submit\" class=\"btn btn-success btn-block ml-3\">+</button>\n                </div>\n            </div>\n        </form>\n    </div>\n</div>\n</body>\n</html>\n```\nRight, so what is going on here?\nEvery thing in the header is just [bootstrap](https://getbootstrap.com/docs/4.5/getting-started/introduction/), which is used for styling, if you don't know it go check it out it is pretty cool.\n\nIn the `body` we declare an outher `div` to contain the whole app and an inner `div` to contain a form for creating new todos.",
+            "title": "CRUD Todo app with Spring, Thymeleaf and MySQL",
+            "updated": "2020-10-31T15:24:30.706"
+        },
+        "model": "blog.post",
+        "pk": "dbd155d5-0cae-4f4a-bc40-997218650763"
+    },
+    {
+        "fields": {
+            "categories": [
+                "583c8452-8a28-4169-8d49-76a2c245dd9e",
+                "597842d0-61fd-41e1-b40c-47075cf6870e"
+            ],
+            "created": "2020-10-31T15:05:56.139",
+            "published": false,
+            "serie": null,
+            "text": "asdfasdf",
+            "title": "ddw",
+            "updated": "2020-10-31T15:05:56.139"
+        },
+        "model": "blog.post",
+        "pk": "e9bc7274-bfec-4442-b84f-3fc2d65a4291"
+    },
+    {
+        "fields": {
+            "categories": [
+                "165ac5e1-c196-4d80-aa60-f02e3b5eaacd",
+                "583c8452-8a28-4169-8d49-76a2c245dd9e"
+            ],
+            "created": "2020-10-29T14:07:31.338",
+            "published": true,
+            "serie": null,
+            "text": "ad",
+            "title": "sadf",
+            "updated": "2020-10-29T14:07:31.338"
+        },
+        "model": "blog.post",
+        "pk": "f1e4c5cc-a76a-4f12-9666-b96d86dd68c7"
+    },
+    {
+        "fields": {
+            "categories": [
+                "165ac5e1-c196-4d80-aa60-f02e3b5eaacd",
+                "583c8452-8a28-4169-8d49-76a2c245dd9e"
+            ],
+            "created": "2020-11-08T18:48:45.825",
+            "published": true,
+            "serie": null,
+            "text": "bla \n`code`adfasdf",
+            "title": "POST MAN TEST56465",
+            "updated": "2020-11-08T19:49:06.057"
+        },
+        "model": "blog.post",
+        "pk": "fdf596c7-a597-4444-990b-1ffdbeb793ab"
+    }
+]
