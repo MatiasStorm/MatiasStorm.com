@@ -13,6 +13,7 @@ import Url.Builder exposing (QueryParameter)
 import Username exposing (Username)
 import Url.Builder exposing (string)
 import Url.Builder exposing (int)
+import Array exposing (Array)
 
 
 {-| Http.request, except it takes an Endpoint instead of a Url.
@@ -62,8 +63,22 @@ url : List String -> List QueryParameter -> Endpoint
 url paths queryParams =
     -- NOTE: Url.Builder takes care of percent-encoding special URL characters.
     -- See https://package.elm-lang.org/packages/elm/url/latest/Url#percentEncode
-    Url.Builder.absolute ("api" :: paths) queryParams
+    Url.Builder.absolute ("api" :: addEndingSlash paths) queryParams
         |> Endpoint
+
+addEndingSlash : List String -> List String
+addEndingSlash paths =
+    let
+        pathsArray = Array.fromList paths
+        length = Array.length pathsArray
+        lastElement = Array.get (length - 1) pathsArray
+    in
+    case lastElement of
+        Just str ->
+            Array.toList ( Array.set (length - 1) (str ++ "/") pathsArray )
+        Nothing ->
+            paths
+
 
 
 
