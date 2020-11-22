@@ -128,7 +128,6 @@ changeRouteTo maybeRoute model =
     let
         session =
             toSession model
-        _ = Debug.log "Change route" session
     in
     case maybeRoute of
         Nothing ->
@@ -145,8 +144,8 @@ changeRouteTo maybeRoute model =
             Login.init session
                 |> updateWith Login GotLoginMsg model
 
-        Just Route.Admin ->
-            Admin.init session
+        Just ( Route.Admin adminRoute ) ->
+            Admin.init session adminRoute
                 |> updateWith Admin GotAdminMsg model
 
         Just Route.About ->

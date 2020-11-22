@@ -1,4 +1,4 @@
-module Page exposing (Page(..), view)
+module Page exposing (Page(..), view, AdminPage(..))
 import Browser exposing (Document)
 import Html exposing (Html, nav, div, text, footer, a, li, ul)
 import Html.Attributes exposing(..)
@@ -14,6 +14,9 @@ type Page
     | Admin
     | Login
     | About
+
+type AdminPage
+    = AdminHome
 
 
 view : Maybe Cred -> Page -> {title : String , content: Html msg} -> Document msg
@@ -60,7 +63,7 @@ isActive : Page -> Route -> Bool
 isActive page route = 
     case (page, route) of
         (Home, Route.Home ) -> True
-        (Admin, Route.Admin) -> True
+        (Admin, Route.Admin _) -> True
         (About, Route.About) -> True
         -- (Post, Route.Post) -> True
         -- (Login, Route.Login ) -> True

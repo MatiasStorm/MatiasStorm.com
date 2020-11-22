@@ -5,6 +5,7 @@ module Route exposing
     , replaceUrl
     , pushUrl
     , back
+    , AdminRoute(..)
     )
 
 import Browser.Navigation as Nav
@@ -17,15 +18,18 @@ import Url.Builder
 
 
 -- ROUTING
-
-
 type Route
     = Home
     | Logout
     | Login
-    | Admin
+    | Admin AdminRoute
     | About
     | Post String
+
+type AdminRoute 
+    = AdminHome
+    -- | AdminEditPost String
+    -- | AdminNewPost
 
 
 parser : Parser (Route -> a) a
@@ -34,11 +38,18 @@ parser =
         [ Parser.map Home Parser.top
         , Parser.map Logout (s "logout")
         , Parser.map Login (s "login")
-        , Parser.map Admin (s "admin")
+        , Parser.map Admin (s "admin" </> adminParser)
         , Parser.map About (s "about")
         , Parser.map Post (s "post" </> string)
         ]
 
+adminParser : Parser (AdminRoute -> a) a
+adminParser =
+    oneOf
+        [ Parser.map AdminHome Parser.top
+        -- , Parser.map AdminEditPost (s "edit" </> string)
+        -- , Parser.map AdminNewPost (s "new")
+        ]
 
 
 -- PUBLIC HELPERS
@@ -83,8 +94,14 @@ routeToPieces page =
         Login ->
             [ "login" ]
 
-        Admin ->
-            [ "admin" ]
+        Admin adminRoute ->
+            case adminRoute of
+                AdminHome ->
+                    [ "admin" ]
+                -- AdminNewPost ->
+                --     ["admin", "new"]
+                -- AdminEditPost postId ->
+                --     ["admin", "edit", postId]
 
         About ->
             [ "about" ]
