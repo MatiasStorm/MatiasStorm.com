@@ -20,6 +20,7 @@ import Http
 import Html.Events exposing (onClick, onInput, onCheck)
 import Views.PostForm as PostForm
 import Views.PostView as PostView
+import Route
 
 
 type Msg
@@ -27,6 +28,7 @@ type Msg
     | GotCategories (Result Http.Error (List PostCategory))
     | GotPostFormMsg PostForm.Msg
     | GotSession Session
+    | GotPostResponse (Result Http.Error Post)
     | TogglePreview
 
 type Status
@@ -60,6 +62,14 @@ update msg model =
                 Err error ->
                     ({model | status = Failure}, Cmd.none)
 
+        GotPostResponse result ->
+            case result of 
+                Ok post ->
+                    (model, Route.pushUrl (Session.navKey model.session) (Route.Admin Route.AdminHome))
+
+                Err _ ->
+                    (model, Cmd.none) -- Maybe display error at some point.
+
 
         GotPostFormMsg postFormMsg ->
             let
@@ -68,8 +78,8 @@ update msg model =
             case outMsg of
                 Just PostForm.CancelSend ->
                     ( model
-                    , (Route.Admin Route.AdminHome) 
-                        |> Route.pushUrl (Session.navKey model.session)  )
+                    , Route.pushUrl (Session.navKey model.session) (Route.Admin Route.AdminHome) 
+                    )
 
                 Just (PostForm.SubmitSend post) ->
                     ( model, model.request post)
@@ -131,9 +141,9 @@ initialModel session cred maybePostId =
         request = 
             case maybePostId of
                 Just postId ->
-                    PostData.update cred GotPost 
+                    PostData.update cred GotPostResponse 
                 Nothing ->
-                    PostData.create cred GotPost
+                    PostData.create cred GotPostResponse
     in
     { postCategories = []
     , status = Loading
