@@ -38,8 +38,7 @@ update msg model =
         GotPosts result ->
             case result of
                 Ok postList ->
-                    ( { model 
-                        | posts = postList
+                    (   { model | posts = postList
                         , status = Success 
                     }, Cmd.none)
 

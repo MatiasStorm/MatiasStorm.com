@@ -26,7 +26,7 @@ class PostViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.PostSerializer
 
     def get_queryset(self):
-        queryset = self.queryset
+        queryset = super().get_queryset()
         count: int = int( self.request.query_params.get("count", 0) )
         if (count > 0):
             return queryset[0: count]
@@ -39,7 +39,7 @@ class StrippedPostViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = serializers.StrippedPostSerializer
 
     def get_queryset(self):
-        queryset = self.queryset
+        queryset = super().get_queryset()
         asc = self.request.query_params.get("asc", None)
         if asc:
             queryset = queryset.order_by("created")
