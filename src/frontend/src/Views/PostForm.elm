@@ -100,16 +100,6 @@ multiSelectModel post postCategories =
 
         selectedCategories : List (String, String)
         selectedCategories = List.map (\c -> (c.id, c.category_name)) post.categories
-            -- let 
-            --     filterById : PostCategory -> Bool
-            --     filterById category =
-            --         List.any ( \i -> category.id == i) post.categories
-
-            --     filteredCategories : List PostCategory
-            --     filteredCategories =  List.filter filterById postCategories
-
-            -- in
-            -- multiselectCategories filteredCategories
     in
     Multiselect.populateValues model (multiselectCategories postCategories) selectedCategories
 
@@ -129,9 +119,8 @@ view model =
     let 
         post = model.post
     in
-    div [ Attr.class "col-6" ] 
-        [ h2 [] [ text post.title ]
-        , div [ Attr.class "form-group" ] 
+    div [ Attr.class "" ] 
+        [ div [ Attr.class "form-group" ] 
             [ label [Attr.for "postTitle"] [ text "Post Title" ]
             , input [ Attr.class "form-control"
                     , Attr.type_ "text"
