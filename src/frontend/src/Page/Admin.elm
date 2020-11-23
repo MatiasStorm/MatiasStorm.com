@@ -8,6 +8,7 @@ module Page.Admin exposing
     , toSession
     )
 import Page.Admin.Home as Home
+import Page.Admin.EditPost as EditPost
 import Page.NotFound as NotFound
 import Page.Blank as Blank 
 import Session exposing (Session)
@@ -18,7 +19,7 @@ import Page exposing (AdminPage)
 -- types
 type Msg
     = GotHomeMsg Home.Msg
-    -- | GotEditMsg
+    | GotEditMsg EditPost.Msg
     | GotSession Session
 
 -- Update
@@ -32,18 +33,21 @@ update msg model =
             Home.update subMsg home
                 |> updateWith Home GotHomeMsg model
 
+        ( GotEditMsg subMsg, Edit edit )->
+            EditPost.update subMsg edit
+                |> updateWith Edit GotEditMsg model
+
         ( _, _ ) ->
             -- Disregard messages that arrived for the wrong page.
             ( model, Cmd.none )
 
-        -- Edit ->
-        --     (model , Cmd.none)
 
 -- Model
 type Model
     = Redirect Session
     | NotFound Session
     | Home Home.Model
+    | Edit EditPost.Model
 
     -- | Edit
 
@@ -51,10 +55,23 @@ type Model
 -- Init
 init : Session -> AdminRoute -> (Model, Cmd Msg)
 init session adminRoute =
-    case adminRoute of
-        Route.AdminHome ->
-            Home.init session 
-                |> updateWith Home GotHomeMsg (Redirect session)
+    case Session.cred session of
+        Just cred -> 
+            case adminRoute of
+                Route.AdminHome ->
+                    Home.init session
+                        |> updateWith Home GotHomeMsg (Redirect session)
+
+                Route.AdminEditPost postId ->
+                    EditPost.init session cred (Just postId)
+                        |> updateWith Edit GotEditMsg (Redirect session)
+
+                Route.AdminNewPost ->
+                    EditPost.init session cred Nothing
+                        |> updateWith Edit GotEditMsg (Redirect session)
+
+        Nothing -> 
+            ( Redirect session, Route.pushUrl (Session.navKey session) Route.Login )
 
 
 updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
@@ -77,8 +94,9 @@ subscriptions model =
 
         Home home ->
             Sub.none
-        -- Edit ->
-        --     Sub.none
+
+        Edit edit ->
+            Sub.none
 
 
 
@@ -109,6 +127,9 @@ view model =
         Home home ->
             viewPage GotHomeMsg (Home.view home)
 
+        Edit edit ->
+            viewPage GotEditMsg (EditPost.view edit)
+
 
 
 
@@ -124,6 +145,8 @@ toSession model =
 
         Home home ->
             Home.toSession home
-        -- Edit ->
+
+        Edit edit ->
+            EditPost.toSession edit
 
 

@@ -28,8 +28,8 @@ type Route
 
 type AdminRoute 
     = AdminHome
-    -- | AdminEditPost String
-    -- | AdminNewPost
+    | AdminEditPost String
+    | AdminNewPost
 
 
 parser : Parser (Route -> a) a
@@ -47,8 +47,8 @@ adminParser : Parser (AdminRoute -> a) a
 adminParser =
     oneOf
         [ Parser.map AdminHome Parser.top
-        -- , Parser.map AdminEditPost (s "edit" </> string)
-        -- , Parser.map AdminNewPost (s "new")
+        , Parser.map AdminEditPost (s "edit" </> string)
+        , Parser.map AdminNewPost (s "new")
         ]
 
 
@@ -98,10 +98,10 @@ routeToPieces page =
             case adminRoute of
                 AdminHome ->
                     [ "admin" ]
-                -- AdminNewPost ->
-                --     ["admin", "new"]
-                -- AdminEditPost postId ->
-                --     ["admin", "edit", postId]
+                AdminNewPost ->
+                    ["admin", "new"]
+                AdminEditPost postId ->
+                    ["admin", "edit", postId]
 
         About ->
             [ "about" ]

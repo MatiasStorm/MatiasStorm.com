@@ -34,13 +34,13 @@ get postId maybeCred msg =
     Api.get ( Endpoint.post (Just postId )) maybeCred decoder msg
 
 
-create : Cred -> Post -> (Result Http.Error Post -> msg) -> Cmd msg
-create cred post msg =
+create : Cred -> (Result Http.Error Post -> msg) -> Post -> Cmd msg
+create cred msg post =
     Api.post ( Endpoint.post Nothing) (Just cred) (encoder post) decoder msg
 
 
-update : Cred -> Post -> (Result Http.Error Post -> msg) -> Cmd msg
-update cred post msg =
+update : Cred -> (Result Http.Error Post -> msg) -> Post -> Cmd msg
+update cred msg post =
     let
         endpoint = Endpoint.post ( Just post.id )
         body = encoder post
