@@ -95,7 +95,7 @@ renderer =
     , codeBlock = codeBlock
     , paragraph = Html.p []
     , hardLineBreak = Html.br [] []
-    , blockQuote = Html.blockquote []
+    , blockQuote = Html.blockquote [Attr.class "mx-5"]
     , strong =
         \children -> Html.strong [] children
     , emphasis =
