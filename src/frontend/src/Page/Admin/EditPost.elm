@@ -21,6 +21,7 @@ import Html.Events exposing (onClick, onInput, onCheck)
 import Views.PostForm as PostForm
 import Views.PostView as PostView
 import Route
+import Data.Post exposing (create)
 
 
 type Msg
@@ -42,9 +43,10 @@ update msg model =
     case msg of
         GotCategories result ->
             case result of 
-                Ok categoryList ->
+                Ok categories ->
                     ( { model 
-                        | postCategories = categoryList
+                        | postFormModel = createPostFormModel initialPost categories
+                        , categories = categories
                         , status = Success 
                     }, Cmd.none)
 
@@ -55,7 +57,7 @@ update msg model =
         GotPost result ->
             case result of
                 Ok post ->
-                    ( { model | postFormModel = createPostFormModel post ( Just model.postCategories ) } 
+                    ( { model | postFormModel = createPostFormModel post model.categories } 
                       , Cmd.none 
                     )
 
@@ -94,13 +96,13 @@ update msg model =
             ( {model | showPreview = not model.showPreview}, Cmd.none )
 
 type alias Model =
-    { postCategories : (List PostCategory)
-    , status : Status
+    { status : Status
     , postFormModel : PostForm.Model
     , session : Session
     , request : Post -> Cmd Msg
     , showPreview: Bool
     , cred : Cred
+    , categories : List PostCategory
     }
 
 
@@ -127,13 +129,9 @@ initialPost =
     , updated = ""
     } 
 
-createPostFormModel : Post -> Maybe (List PostCategory) -> PostForm.Model
+createPostFormModel : Post -> List PostCategory -> PostForm.Model
 createPostFormModel post categories =
-    case categories of
-        Just actualCategories ->
-            PostForm.initModel post actualCategories
-        Nothing ->
-            PostForm.initModel post []
+    PostForm.initModel post categories
 
 initialModel : Session -> Cred -> Maybe String -> Model
 initialModel session cred maybePostId = 
@@ -145,13 +143,13 @@ initialModel session cred maybePostId =
                 Nothing ->
                     PostData.create cred GotPostResponse
     in
-    { postCategories = []
-    , status = Loading
+    { status = Loading
     , session = session
     , cred = cred
     , showPreview = False
-    , postFormModel = createPostFormModel initialPost Nothing
+    , postFormModel = createPostFormModel initialPost []
     , request = request
+    , categories = []
     }
 
 
