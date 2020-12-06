@@ -42,13 +42,19 @@ update : Msg -> Model -> ( Model, Cmd Msg)
 update msg model =
     case msg of
         GotCategories result ->
+            let
+                getMaybePost =
+                    case model.postId of
+                        Just postId -> PostData.get postId ( Just model.cred ) GotPost
+                        Nothing -> Cmd.none
+            in
             case result of 
                 Ok categories ->
                     ( { model 
                         | postFormModel = createPostFormModel initialPost categories
                         , categories = categories
                         , status = Success 
-                    }, Cmd.none)
+                    }, getMaybePost)
 
                 Err _ ->
                     ({model | status = Failure}, Cmd.none)
@@ -76,6 +82,12 @@ update msg model =
         GotPostFormMsg postFormMsg ->
             let
                 (formModel, cmd, outMsg) = PostForm.update postFormMsg model.postFormModel
+                request = 
+                    case model.postId of
+                        Just postId ->
+                            PostData.update model.cred GotPostResponse 
+                        Nothing ->
+                            PostData.create model.cred GotPostResponse
             in
             case outMsg of
                 Just PostForm.CancelSend ->
@@ -84,7 +96,7 @@ update msg model =
                     )
 
                 Just (PostForm.SubmitSend post) ->
-                    ( model, model.request post)
+                    ( model, request post)
 
                 Nothing ->
                     ( { model | postFormModel = formModel }, Cmd.none)
@@ -99,7 +111,7 @@ type alias Model =
     { status : Status
     , postFormModel : PostForm.Model
     , session : Session
-    , request : Post -> Cmd Msg
+    , postId : Maybe String
     , showPreview: Bool
     , cred : Cred
     , categories : List PostCategory
@@ -135,20 +147,12 @@ createPostFormModel post categories =
 
 initialModel : Session -> Cred -> Maybe String -> Model
 initialModel session cred maybePostId = 
-    let 
-        request = 
-            case maybePostId of
-                Just postId ->
-                    PostData.update cred GotPostResponse 
-                Nothing ->
-                    PostData.create cred GotPostResponse
-    in
     { status = Loading
     , session = session
     , cred = cred
     , showPreview = False
+    , postId = maybePostId
     , postFormModel = createPostFormModel initialPost []
-    , request = request
     , categories = []
     }
 
@@ -166,7 +170,7 @@ init session cred maybePostId=
                     [CategoryData.list (Session.cred session) GotCategories]
     in
     ( initialModel session cred maybePostId
-    , Cmd.batch commands )
+    , CategoryData.list (Session.cred session) GotCategories )
 
 
 
