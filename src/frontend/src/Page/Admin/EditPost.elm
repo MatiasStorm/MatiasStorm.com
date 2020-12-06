@@ -31,6 +31,8 @@ type Msg
     | GotSession Session
     | GotPostResponse (Result Http.Error Post)
     | TogglePreview
+    | Cancel
+    | Submit
 
 type Status
     = Failure
@@ -81,25 +83,26 @@ update msg model =
 
         GotPostFormMsg postFormMsg ->
             let
-                (formModel, cmd, outMsg) = PostForm.update postFormMsg model.postFormModel
+                (formModel, cmd) = PostForm.update postFormMsg model.postFormModel
+            in
+            ({model | postFormModel = formModel}, Cmd.map GotPostFormMsg cmd)
+
+        Cancel ->
+            ( model
+            , Route.pushUrl (Session.navKey model.session) (Route.Admin Route.AdminHome) 
+            )
+
+        Submit ->
+            let
                 request = 
                     case model.postId of
                         Just postId ->
                             PostData.update model.cred GotPostResponse 
                         Nothing ->
                             PostData.create model.cred GotPostResponse
+                post = PostForm.getPost model.postFormModel
             in
-            case outMsg of
-                Just PostForm.CancelSend ->
-                    ( model
-                    , Route.pushUrl (Session.navKey model.session) (Route.Admin Route.AdminHome) 
-                    )
-
-                Just (PostForm.SubmitSend post) ->
-                    ( model, request post)
-
-                Nothing ->
-                    ( { model | postFormModel = formModel }, Cmd.none)
+            ( model, request post)
 
         GotSession session ->
             ( { model | session = session }, Cmd.none)
@@ -216,7 +219,11 @@ previewToggler showPreview =
 
 editView : PostForm.Model -> Html Msg
 editView postFormModel =
-    Html.map GotPostFormMsg <| PostForm.view postFormModel
+    div []
+        [ Html.map GotPostFormMsg <| PostForm.view postFormModel
+        , button [ Attr.class "btn btn-primary", onClick Submit ] [ text "Post" ]
+        , button [ Attr.class "btn btn-secondary", onClick Cancel ] [ text "Cancel" ]
+        ]
 
 
 preview : Post -> Html Msg

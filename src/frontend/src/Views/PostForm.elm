@@ -1,6 +1,5 @@
 module Views.PostForm exposing 
     ( Msg
-    , OutMsg(..)
     , update
     , initModel
     , Model
@@ -25,13 +24,6 @@ type Msg
     | Text String
     | Categories Multiselect.Msg
     | Published Bool
-    | Cancel
-    | Submit
-
-type OutMsg 
-    = SubmitSend Post
-    | CancelSend
-
 
 -- Subscriptions
 
@@ -40,7 +32,7 @@ subscriptions model =
     Sub.map Categories <| Multiselect.subscriptions model.postCategoryMultiselectModel
 
 -- Update 
-update : Msg -> Model -> (Model, Cmd Msg, Maybe OutMsg)
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model = 
     let
         _ = Debug.log "model" model
@@ -51,14 +43,14 @@ update msg model =
                 updateTitle : Post -> Post
                 updateTitle post = { post | title = title }
             in
-            ( { model | post = updateTitle model.post }, Cmd.none, Nothing )
+            ( { model | post = updateTitle model.post }, Cmd.none)
 
         Text text ->
             let
                 updateText : Post -> Post
                 updateText post = { post | text = text }
             in
-            ( { model | post = updateText model.post }, Cmd.none, Nothing )
+            ( { model | post = updateText model.post }, Cmd.none)
 
         Categories multiSelectMsg ->
             let
@@ -73,20 +65,16 @@ update msg model =
                             model.postCategories
                     }
             in
-            ({ model | postCategoryMultiselectModel = subModel, post = updateCategories model.post }, Cmd.map Categories subCmd, Nothing)
+            ({ model | postCategoryMultiselectModel = subModel, post = updateCategories model.post }
+            , Cmd.map Categories subCmd
+            )
 
         Published published ->
             let 
                 updatePublished : Post -> Post 
                 updatePublished post = {post | published = published}
             in
-            ( { model | post = updatePublished model.post }, Cmd.none, Nothing)
-
-        Submit ->
-            (model, Cmd.none, Just (SubmitSend model.post))
-
-        Cancel ->
-            (model, Cmd.none, Just CancelSend)
+            ( { model | post = updatePublished model.post }, Cmd.none)
 
 -- Multiselect
 multiSelectModel : Post -> List PostCategory -> Multiselect.Model
@@ -130,6 +118,7 @@ view model =
                     , onInput Title
                     ] [] 
             ] 
+        , Html.map Categories <| Multiselect.view model.postCategoryMultiselectModel
         , div [ Attr.class "form-group" ] 
             [ label [Attr.for "postText"] [ text "Post Text" ]
             , textarea 
@@ -140,7 +129,6 @@ view model =
                 , onInput Text
                 ] [] 
             ] 
-        , Html.map Categories <| Multiselect.view model.postCategoryMultiselectModel
         , div [ Attr.class "form-check" ] 
             [ input [ Attr.class "form-check-input"
                     , Attr.type_ "checkbox" 
@@ -152,6 +140,4 @@ view model =
                     , Attr.class "form-check-label"
                     ] [ text "Published" ]
             ]
-        , button [ Attr.class "btn btn-primary", onClick Submit ] [ text "Post" ]
-        , button [ Attr.class "btn btn-secondary", onClick Cancel ] [ text "Cancel" ]
         ]
