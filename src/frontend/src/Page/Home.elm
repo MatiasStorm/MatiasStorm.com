@@ -24,6 +24,7 @@ import Html.Attributes exposing (style)
 
 type Msg
     = GotStrippedPosts (Result Http.Error (List StrippedPost))
+    | GotPostCategories (Result Http.Error (List PostCategory))
     | GotSession Session
     | GoToPost String
 
@@ -37,6 +38,7 @@ type alias Model =
     { posts : (List StrippedPost)
     , status : Status
     , session : Session
+    , categoires : (List PostCategory)
     }
 
 initModel : Session -> Model
@@ -44,6 +46,7 @@ initModel session =
     { posts = []
     , status = Loading
     , session = session
+    , categoires = []
     }
 
 -- Init
@@ -52,6 +55,7 @@ init  session =
     (initModel session
     , Cmd.batch 
         [ StrippedPostData.getCount 5 Nothing GotStrippedPosts
+        , CategoryData.list Nothing GotPostCategories
         ]
     )
 
@@ -76,6 +80,17 @@ update msg model =
                 Ok postList ->
                     ( { model 
                         | posts = postList
+                        , status = Success 
+                    }, Cmd.none)
+
+                Err _ ->
+                    ({model | status = Failure}, Cmd.none)
+
+        GotPostCategories result ->
+            case result of
+                Ok categoires ->
+                    ( { model 
+                        | categoires = categoires
                         , status = Success 
                     }, Cmd.none)
 

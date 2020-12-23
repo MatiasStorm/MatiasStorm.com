@@ -5,6 +5,7 @@ import Html.Attributes exposing (class, style)
 import Html exposing (..)
 import Views.MarkdownView exposing (renderMarkdown)
 import Utils.DateFormat exposing (formatDate)
+import Views.PostCategoryTag as TagView
 
 
 
@@ -13,7 +14,7 @@ view post =
     div [class "card my-3"] 
         [ div [class "card-body"] 
             [ h1 [class "card-title mb-0"] [text post.title] 
-            , div [class "my-2"] ( List.map postCategoryView post.categories ) 
+            , div [class "my-2"] ( List.map TagView.view post.categories ) 
             , span [class "text-secondary"] [text ( formatDate post.created)]
             , case (renderMarkdown post.text) of
                 Ok rendered ->
@@ -24,12 +25,6 @@ view post =
             ]
         ]
 
-postCategoryView : PostCategory -> Html msg
-postCategoryView category =
-    h4 [class "d-inline m-0"] 
-        [ span [class "badge badge-secondary mr-2 p-2", style "background-color" category.color] 
-            [ text category.category_name ]
-        ]
 
 
 
