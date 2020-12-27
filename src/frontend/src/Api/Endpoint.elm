@@ -4,7 +4,7 @@ module Api.Endpoint exposing
     , request
     , post
     , postCategory
-    , StrippedPostQueryParams(..) 
+    , StrippedPostQueryParam(..) 
     , strippedPost
     )
 
@@ -99,42 +99,32 @@ postCategory : Endpoint
 postCategory =
     url ["post_category"] []
 
-type StrippedPostQueryParams 
+type StrippedPostQueryParam
     = Count Int
-    | Before String ( Maybe Bool )
-    | After String ( Maybe Bool )
-    | CountAndBefore Int String ( Maybe Bool )
-    | CountAndAfter Int String ( Maybe Bool )
+    | Before String 
+    | After String 
+    | Ascending Bool
 
-strippedPost : Maybe StrippedPostQueryParams -> Endpoint
+strippedPost : List StrippedPostQueryParam -> Endpoint
 strippedPost queryParams =
-    url ["stripped_post"] ( strippedPostQueryParams queryParams )
+    url ["stripped_post"] (parseStrippedPostQueryParams queryParams)
 
-strippedPostQueryParams : Maybe StrippedPostQueryParams -> List QueryParameter
-strippedPostQueryParams queryParams =
+parseStrippedPostQueryParams: List StrippedPostQueryParam -> List QueryParameter
+parseStrippedPostQueryParams queryParams =
     let 
         getOrder maybeAsc =
             case maybeAsc of
                 Just asc -> string "asc" "true"
                 Nothing -> string "" ""
+        parseQueryParam param =
+            case param of
+                Count count ->
+                    int "count" count
+                Before date ->
+                    string "before" date
+                After date ->
+                    string "after" date
+                Ascending asc ->
+                    string "asc" "true"
     in
-    case queryParams of
-        Nothing ->
-            []
-        Just ( Count count )->
-            [int "count" count]
-        Just ( Before date maybeAsc) ->
-            [string "before" date, getOrder maybeAsc]
-        Just ( After date maybeAsc) ->
-            [string "after" date, getOrder maybeAsc]
-        Just ( CountAndBefore count date maybeAsc) -> 
-            [int "count" count, string "before" date, getOrder maybeAsc]
-        Just ( CountAndAfter count date maybeAsc) ->
-            [int "count" count, string "after" date, getOrder maybeAsc]
-
-
-
-
-
-
-
+    List.map (\p -> parseQueryParam p) queryParams

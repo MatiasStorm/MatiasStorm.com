@@ -2,7 +2,7 @@ module Page.Post exposing (view, toSession, subscriptions, Model, init, Msg, upd
 import Html exposing (..)
 import Html.Attributes exposing (class, style)
 import Session exposing (Session)
-import Data.StrippedPost as StrippedPostData exposing (StrippedPost)
+import Data.StrippedPost as SPD exposing (StrippedPost)
 import Data.Post as PostData exposing (Post)
 import Views.PostView as PostView
 import Http
@@ -52,8 +52,8 @@ update msg model =
                     in
                     ( {model | post = Just post}
                     , Cmd.batch 
-                        [ StrippedPostData.getCountBefore 1 post.created cred GotPrevPost
-                        , StrippedPostData.getCountAfter 1 post.created cred GotNextPost
+                        [ SPD.get (SPD.count 1 [] |> SPD.before post.created) cred GotPrevPost
+                        , SPD.get (SPD.count 1 [] |> SPD.after post.created) cred GotNextPost
                         ] 
                     )
                 Err _ ->

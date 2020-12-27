@@ -1,13 +1,15 @@
 module Data.StrippedPost exposing 
     ( StrippedPost
-    , getCountAfter
-    , getCountBefore
-    , getCount
+    , count
+    , before
+    , after
+    , ascending
+    , get
     )
 import Data.PostCategory as CategoryData exposing (PostCategory)
 import Http
 import Api exposing (Cred)
-import Api.Endpoint exposing (StrippedPostQueryParams(..), strippedPost)
+import Api.Endpoint exposing (StrippedPostQueryParam(..), strippedPost)
 import Json.Decode as JD
 import Json.Encode as JE
 
@@ -21,26 +23,25 @@ type alias StrippedPost =
     , created :  String
     }
 
-getCountAfter : Int -> String -> Maybe Cred -> (Result Http.Error (List StrippedPost) -> msg) -> Cmd msg
-getCountAfter count after cred msg =
-    let
-        params = Just ( CountAndAfter count after (Just True) )
-    in
-    Api.get (strippedPost params ) cred listDecoder msg
+count : Int -> List StrippedPostQueryParam -> List StrippedPostQueryParam
+count c params = Count c :: params
 
-getCountBefore : Int -> String -> Maybe Cred -> (Result Http.Error (List StrippedPost) -> msg) -> Cmd msg
-getCountBefore count before cred msg =
-    let
-        params = Just ( CountAndBefore count before Nothing )
-    in
-    Api.get (strippedPost params ) cred listDecoder msg
+before : String -> List StrippedPostQueryParam -> List StrippedPostQueryParam
+before date params = Before date :: params
 
-getCount : Int -> Maybe Cred -> (Result Http.Error (List StrippedPost) -> msg) -> Cmd msg
-getCount count cred msg =
+after : String -> List StrippedPostQueryParam -> List StrippedPostQueryParam
+after date params = After date :: params
+
+ascending : Bool -> List StrippedPostQueryParam -> List StrippedPostQueryParam
+ascending b params = Ascending b :: params
+
+get : List StrippedPostQueryParam -> Maybe Cred -> (Result Http.Error (List StrippedPost) -> msg) -> Cmd msg
+get params cred msg =
     let
-        params = Just ( Count count )
+        endpoint = strippedPost params
     in
-    Api.get (strippedPost params ) cred listDecoder msg
+    Api.get endpoint cred listDecoder msg
+
 
 decoder : JD.Decoder StrippedPost
 decoder =

@@ -18,7 +18,7 @@ import Data.Post as PostData exposing (Post)
 import Data.PostCategory as CategoryData exposing (PostCategory)
 import Views.PostView as PostView
 import Views.StrippedPostView as StrippedPostView
-import Data.StrippedPost as StrippedPostData exposing (StrippedPost)
+import Data.StrippedPost as SPD exposing (StrippedPost)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onSubmit)
 import Html.Events exposing (onInput)
@@ -64,7 +64,7 @@ init : Session -> (Model, Cmd Msg)
 init  session =
     (initModel session
     , Cmd.batch 
-        [ StrippedPostData.getCount 5 Nothing GotStrippedPosts
+        [ SPD.get (SPD.count 1 []) Nothing GotStrippedPosts
         , CategoryData.list Nothing GotPostCategories
         ]
     )
