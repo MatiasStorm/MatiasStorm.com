@@ -119,10 +119,9 @@ view model =
                     text "Loading..."
 
                 Success ->
-                    div [] [
-                        div [class "container"] 
-                            (List.map postView model.posts)
-                        ]
+                    div []  [ div [class "container"] 
+                            (searchBarView :: (List.map postView model.posts))
+                            ]
     in
     { title =  "Home" 
     , content = content
@@ -135,6 +134,12 @@ postView post =
         ] 
         [StrippedPostView.view post]
 
+searchBarView : Html Msg
+searchBarView =
+    div [class "mt-2 input-group"] 
+        [ button [class "btn btn-dark bt-lg mr-1"] [text "Search"]
+        , input [class "form-control"] [] 
+        ]
 
 
 
