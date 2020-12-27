@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAdminUser, SAFE_METHODS, BasePermission
 from rest_framework import viewsets
 from rest_framework.views import APIView
 import datetime
+from typing import List
 from . import models, serializers
 
 class ReadOnly(BasePermission):
@@ -53,6 +54,10 @@ class StrippedPostViewSet(viewsets.ReadOnlyModelViewSet):
         before: str = self.request.query_params.get("before", None)
         if before:
             queryset = queryset.filter(created__lt=datetime.datetime.strptime(before, "%Y-%m-%dT%H:%M:%S.%f"))
+
+        category_ids: List[str] = self.request.query_params.getlist("category_id", None)
+        if category_ids and len(category_ids) > 0:
+            queryset = queryset.filter(categories__id__in=category_ids).distinct()
 
         count: int = int( self.request.query_params.get("count", 0) )
         if (count > 0):

@@ -5,6 +5,7 @@ module Data.StrippedPost exposing
     , after
     , ascending
     , get
+    , categoryIds
     )
 import Data.PostCategory as CategoryData exposing (PostCategory)
 import Http
@@ -34,6 +35,9 @@ after date params = After date :: params
 
 ascending : Bool -> List StrippedPostQueryParam -> List StrippedPostQueryParam
 ascending b params = Ascending b :: params
+
+categoryIds : List String -> List StrippedPostQueryParam -> List StrippedPostQueryParam
+categoryIds ids params = (List.map (\i -> CategoryId i) ids) ++ params
 
 get : List StrippedPostQueryParam -> Maybe Cred -> (Result Http.Error (List StrippedPost) -> msg) -> Cmd msg
 get params cred msg =

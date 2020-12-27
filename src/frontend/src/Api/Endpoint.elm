@@ -11,8 +11,7 @@ module Api.Endpoint exposing
 import Http
 import Url.Builder exposing (QueryParameter)
 import Username exposing (Username)
-import Url.Builder exposing (string)
-import Url.Builder exposing (int)
+import Url.Builder exposing (string, int)
 import Array exposing (Array)
 
 
@@ -104,6 +103,7 @@ type StrippedPostQueryParam
     | Before String 
     | After String 
     | Ascending Bool
+    | CategoryId String
 
 strippedPost : List StrippedPostQueryParam -> Endpoint
 strippedPost queryParams =
@@ -126,5 +126,7 @@ parseStrippedPostQueryParams queryParams =
                     string "after" date
                 Ascending asc ->
                     string "asc" "true"
+                CategoryId id ->
+                    string "category_id" id
     in
     List.map (\p -> parseQueryParam p) queryParams

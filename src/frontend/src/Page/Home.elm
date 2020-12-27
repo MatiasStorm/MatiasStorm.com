@@ -64,7 +64,7 @@ init : Session -> (Model, Cmd Msg)
 init  session =
     (initModel session
     , Cmd.batch 
-        [ SPD.get (SPD.count 1 []) Nothing GotStrippedPosts
+        [ SPD.get [] Nothing GotStrippedPosts
         , CategoryData.list Nothing GotPostCategories
         ]
     )
@@ -121,21 +121,27 @@ update msg model =
             ({model | search = search}, Cmd.none)
 
         ToggleCategory id ->
-            if List.member id model.activeCategories then
-                ({model | activeCategories = List.filter ( \c -> c /= id ) model.activeCategories }
-                , Cmd.none
-                )
-            else
-                ({ model | activeCategories = id :: model.activeCategories }
-                , Cmd.none
-                )
-
+            let 
+                activeCategories = 
+                    if List.member id model.activeCategories then
+                        List.filter ( \c -> c /= id ) model.activeCategories 
+                    else 
+                        id :: model.activeCategories
+            in
+            ({model | activeCategories = activeCategories }
+            , SPD.get (SPD.categoryIds activeCategories []) Nothing GotStrippedPosts
+            )
 
 
 -- View
 view : Model -> {title : String, content : Html Msg}
 view model =
     let
+        filteredPosts =
+            if List.length model.activeCategories > 0 then
+                List.filter (\p -> List.any (\c -> List.member c.id model.activeCategories ) p.categories) model.posts
+            else
+                model.posts
         content = 
             case model.status of
                 Failure ->
