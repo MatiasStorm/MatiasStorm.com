@@ -14,7 +14,7 @@ view post =
     div [class "card my-3"] 
         [ div [class "card-body"] 
             [ h1 [class "card-title mb-0"] [text post.title] 
-            , div [class "my-2"] ( List.map TagView.view post.categories ) 
+            , div [class "my-2"] ( List.map ( TagView.view 4 True ) post.categories ) 
             , span [class "text-secondary"] [text ( formatDate post.created)]
             , case (renderMarkdown post.text) of
                 Ok rendered ->

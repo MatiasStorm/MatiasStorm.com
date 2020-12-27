@@ -10,7 +10,7 @@ view strippedPost =
     div [class "card my-3"] 
         [ div [class "card-body"] 
             [ h1 [class "card-title mb-0"] [text strippedPost.title] 
-            , div [class "my-2"] ( List.map TagView.view strippedPost.categories ) 
+            , div [class "my-2"] ( List.map ( TagView.view 4 True) strippedPost.categories  ) 
             , span [class "text-secondary"] [text ( formatDate strippedPost.created)]
             ]
         ]

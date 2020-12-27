@@ -20,6 +20,9 @@ import Views.PostView as PostView
 import Views.StrippedPostView as StrippedPostView
 import Data.StrippedPost as StrippedPostData exposing (StrippedPost)
 import Html.Attributes exposing (style)
+import Html.Events exposing (onSubmit)
+import Html.Events exposing (onInput)
+import Views.PostCategoryTag as TagView
 
 
 type Msg
@@ -27,6 +30,9 @@ type Msg
     | GotPostCategories (Result Http.Error (List PostCategory))
     | GotSession Session
     | GoToPost String
+    | DoSearch
+    | ChangeSearch String
+    | ToggleCategory String
 
 -- Model
 type Status
@@ -38,7 +44,9 @@ type alias Model =
     { posts : (List StrippedPost)
     , status : Status
     , session : Session
-    , categoires : (List PostCategory)
+    , categories : (List PostCategory)
+    , search : String
+    , activeCategories : (List String)
     }
 
 initModel : Session -> Model
@@ -46,7 +54,9 @@ initModel session =
     { posts = []
     , status = Loading
     , session = session
-    , categoires = []
+    , categories = []
+    , search = ""
+    , activeCategories = []
     }
 
 -- Init
@@ -88,9 +98,9 @@ update msg model =
 
         GotPostCategories result ->
             case result of
-                Ok categoires ->
+                Ok categories ->
                     ( { model 
-                        | categoires = categoires
+                        | categories = categories
                         , status = Success 
                     }, Cmd.none)
 
@@ -103,6 +113,22 @@ update msg model =
                 route = Route.Post postId
             in
             (model, Route.pushUrl key route)
+
+        DoSearch ->
+            ({model | search = ""}, Cmd.none)
+
+        ChangeSearch search ->
+            ({model | search = search}, Cmd.none)
+
+        ToggleCategory id ->
+            if List.member id model.activeCategories then
+                ({model | activeCategories = List.filter ( \c -> c /= id ) model.activeCategories }
+                , Cmd.none
+                )
+            else
+                ({ model | activeCategories = id :: model.activeCategories }
+                , Cmd.none
+                )
 
 
 
@@ -119,9 +145,13 @@ view model =
                     text "Loading..."
 
                 Success ->
-                    div []  [ div [class "container"] 
-                            (searchBarView :: (List.map postView model.posts))
-                            ]
+                    div [class "container"]  
+                        [ div []
+                                [ searchBarView
+                                , selectCategoryView model ]
+                        , div []
+                                (List.map postView model.posts)
+                        ]
     in
     { title =  "Home" 
     , content = content
@@ -136,10 +166,20 @@ postView post =
 
 searchBarView : Html Msg
 searchBarView =
-    div [class "mt-2 input-group"] 
+    form [class "mt-2 input-group", onSubmit DoSearch] 
         [ button [class "btn btn-dark bt-lg mr-1"] [text "Search"]
-        , input [class "form-control"] [] 
+        , input [class "form-control", onInput ChangeSearch] [] 
         ]
 
+selectCategoryView : Model -> Html Msg
+selectCategoryView model =
+    let
+        categoryWrapper : PostCategory -> Html Msg
+        categoryWrapper category =
+            span [ style "cursor" "pointer", onClick ( ToggleCategory category.id )] 
+                 [ TagView.view 5 (List.member category.id model.activeCategories) category ]
+    in
+    div [ class "d-flex flex-wrap mt-2" ] 
+         ( List.map categoryWrapper model.categories ) 
 
 
