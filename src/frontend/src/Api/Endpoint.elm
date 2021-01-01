@@ -104,6 +104,7 @@ type StrippedPostQueryParam
     | After String 
     | Ascending Bool
     | CategoryId String
+    | Search String
 
 strippedPost : List StrippedPostQueryParam -> Endpoint
 strippedPost queryParams =
@@ -128,5 +129,7 @@ parseStrippedPostQueryParams queryParams =
                     string "asc" "true"
                 CategoryId id ->
                     string "category_id" id
+                Search search ->
+                    string "search" search
     in
     List.map (\p -> parseQueryParam p) queryParams

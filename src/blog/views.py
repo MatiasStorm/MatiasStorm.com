@@ -59,6 +59,10 @@ class StrippedPostViewSet(viewsets.ReadOnlyModelViewSet):
         if category_ids and len(category_ids) > 0:
             queryset = queryset.filter(categories__id__in=category_ids).distinct()
 
+        search : str = self.request.query_params.get("search", None)
+        if search and len(search) > 0:
+            queryset = queryset.filter(title__icontains=search)
+
         count: int = int( self.request.query_params.get("count", 0) )
         if (count > 0):
             return queryset[0: count]

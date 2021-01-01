@@ -8,7 +8,7 @@ module Page.Home exposing
     , subscriptions
     )
 import Html exposing (..)
-import Html.Attributes exposing(class, classList, style, value)
+import Html.Attributes exposing(class,type_, classList, style, value)
 import Html.Events exposing (onClick, onSubmit, onInput)
 import Http
 import Views.MarkdownView exposing (renderMarkdown)
@@ -30,6 +30,7 @@ type Msg
     | DoSearch
     | ChangeSearch String
     | ToggleCategory String
+    | ResetSearch 
 
 -- Model
 type Status
@@ -67,7 +68,7 @@ init  session maybeSearch =
     in
     (initModel session search
     , Cmd.batch 
-        [ SPD.get [] Nothing GotStrippedPosts
+        [ SPD.get ( SPD.search search [] ) Nothing GotStrippedPosts
         , CategoryData.list Nothing GotPostCategories
         ]
     )
@@ -117,10 +118,13 @@ update msg model =
             (model, Route.pushUrl key route)
 
         DoSearch ->
-            ( model, Route.replaceUrl (Session.navKey model.session) ( Route.Home (Just model.search) ) )
+            ( model, Route.pushUrl (Session.navKey model.session) ( Route.Home (Just model.search) ) )
 
         ChangeSearch search ->
             ({model | search = search}, Cmd.none)
+
+        ResetSearch ->
+            ({model | search = ""},Route.pushUrl (Session.navKey model.session) ( Route.Home Nothing ) )
 
         ToggleCategory id ->
             let 
@@ -175,7 +179,8 @@ postView post =
 searchBarView : Model -> Html Msg
 searchBarView model =
     form [class "mt-2 input-group", onSubmit DoSearch] 
-        [ button [class "btn btn-dark bt-lg mr-1"] [text "Search"]
+        [ button [class "btn btn-dark bt-lg mr-1", type_ "submit"] [text "Search"]
+        , button [class "btn btn-secondary bt-lg mr-1", type_ "button", onClick ResetSearch] [text "Reset"]
         , input [class "form-control", onInput ChangeSearch, value model.search] [] 
         ]
 
@@ -187,7 +192,9 @@ selectCategoryView model =
             span [ style "cursor" "pointer", onClick ( ToggleCategory category.id )] 
                  [ TagView.view 5 (List.member category.id model.activeCategories) category ]
     in
-    div [ class "d-flex flex-wrap mt-2" ] 
-         ( List.map categoryWrapper model.categories ) 
+    div [ class "d-flex flex-wrap align-items-center mt-3" ] 
+        ( h5 [class "mr-2 mb-0"] [text "Filter by Category:"]  
+          :: ( List.map categoryWrapper model.categories ) 
+        )
 
 
