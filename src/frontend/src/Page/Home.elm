@@ -8,8 +8,8 @@ module Page.Home exposing
     , subscriptions
     )
 import Html exposing (..)
-import Html.Attributes exposing(class, classList)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing(class, classList, style, value)
+import Html.Events exposing (onClick, onSubmit, onInput)
 import Http
 import Views.MarkdownView exposing (renderMarkdown)
 import Session exposing (Session)
@@ -19,9 +19,6 @@ import Data.PostCategory as CategoryData exposing (PostCategory)
 import Views.PostView as PostView
 import Views.StrippedPostView as StrippedPostView
 import Data.StrippedPost as SPD exposing (StrippedPost)
-import Html.Attributes exposing (style)
-import Html.Events exposing (onSubmit)
-import Html.Events exposing (onInput)
 import Views.PostCategoryTag as TagView
 
 
@@ -115,7 +112,7 @@ update msg model =
             (model, Route.pushUrl key route)
 
         DoSearch ->
-            ({model | search = ""}, Cmd.none)
+            ({model | search = ""}, Route.pushUrl (Session.navKey model.session) Route.Home)
 
         ChangeSearch search ->
             ({model | search = search}, Cmd.none)
@@ -153,7 +150,7 @@ view model =
                 Success ->
                     div [class "container"]  
                         [ div []
-                                [ searchBarView
+                                [ searchBarView model
                                 , selectCategoryView model ]
                         , div []
                                 (List.map postView model.posts)
@@ -170,11 +167,11 @@ postView post =
         ] 
         [StrippedPostView.view post]
 
-searchBarView : Html Msg
-searchBarView =
+searchBarView : Model -> Html Msg
+searchBarView model =
     form [class "mt-2 input-group", onSubmit DoSearch] 
         [ button [class "btn btn-dark bt-lg mr-1"] [text "Search"]
-        , input [class "form-control", onInput ChangeSearch] [] 
+        , input [class "form-control", onInput ChangeSearch, value model.search] [] 
         ]
 
 selectCategoryView : Model -> Html Msg

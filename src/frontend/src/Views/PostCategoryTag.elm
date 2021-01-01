@@ -25,6 +25,7 @@ view size active category =
             [ span 
                 [ class "badge badge-secondary mr-2 p-2"
                 , style "background-color" category.color
-                , style "opacity" ( if active then "1" else "0.25" )] 
+                , style "filter" ( if active then "" else "brightness(50%)" )
+                ]
                 [ text category.category_name ]
             ]
