@@ -12,14 +12,15 @@ import Browser.Navigation as Nav
 import Html exposing (Attribute)
 import Html.Attributes as Attr
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
-import Url.Builder
+import Url.Parser as Parser exposing ((</>), (<?>), Parser, oneOf, s, string)
+import Url.Parser.Query as Query
+import Url.Builder exposing (QueryParameter)
 
 
 
 -- ROUTING
 type Route
-    = Home
+    = Home ( Maybe String )
     | Logout
     | Login
     | Admin AdminRoute
@@ -32,10 +33,11 @@ type AdminRoute
     | AdminNewPost
 
 
+
 parser : Parser (Route -> a) a
 parser =
     oneOf
-        [ Parser.map Home Parser.top
+        [ Parser.map Home (Parser.top <?> Query.string "search")
         , Parser.map Logout (s "logout")
         , Parser.map Login (s "login")
         , Parser.map Admin (s "admin" </> adminParser)
@@ -79,32 +81,42 @@ back key amount =
 -- INTERNAL
 routeToString : Route -> String
 routeToString page =
-    Url.Builder.absolute (routeToPieces page) []
+    let
+        ( path, parameters ) = routeToPieces page
+    in
+    Url.Builder.absolute path parameters
 
 
-routeToPieces : Route -> List String
+routeToPieces : Route -> ( List String, List QueryParameter )
 routeToPieces page =
     case page of
-        Home ->
-            []
+        Home search ->
+            case search of
+                Just s ->
+                    ( [], [Url.Builder.string "search" s] )
+                Nothing ->
+                    ([], [])
 
         Logout ->
-            [ "logout" ]
+            ( [ "logout" ], [] )
 
         Login ->
-            [ "login" ]
+            ( [ "login" ], [] )
 
         Admin adminRoute ->
             case adminRoute of
                 AdminHome ->
-                    [ "admin" ]
+                    ( [ "admin" ], [] )
                 AdminNewPost ->
-                    ["admin", "new"]
+                    ( ["admin", "new"], [] )
                 AdminEditPost postId ->
-                    ["admin", "edit", postId]
+                    ( ["admin", "edit", postId], [] )
 
         About ->
-            [ "about" ]
+            ( [ "about" ], [] )
 
         Post string ->
-            [ "post", string ]
+            ( [ "post", string ], [] )
+
+
+

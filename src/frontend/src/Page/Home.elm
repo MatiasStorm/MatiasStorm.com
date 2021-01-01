@@ -46,20 +46,26 @@ type alias Model =
     , activeCategories : (List String)
     }
 
-initModel : Session -> Model
-initModel session =
+initModel : Session -> String -> Model
+initModel session search =
     { posts = []
     , status = Loading
     , session = session
     , categories = []
-    , search = ""
+    , search = search
     , activeCategories = []
     }
 
 -- Init
-init : Session -> (Model, Cmd Msg)
-init  session =
-    (initModel session
+init : Session -> Maybe String -> (Model, Cmd Msg)
+init  session maybeSearch =
+    let
+        search =
+            case maybeSearch of
+                Just s -> s
+                Nothing -> ""
+    in
+    (initModel session search
     , Cmd.batch 
         [ SPD.get [] Nothing GotStrippedPosts
         , CategoryData.list Nothing GotPostCategories
@@ -75,7 +81,6 @@ subscriptions model =
     Session.changes GotSession (Session.navKey model.session)
 
 -- Update
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -112,7 +117,7 @@ update msg model =
             (model, Route.pushUrl key route)
 
         DoSearch ->
-            ({model | search = ""}, Route.pushUrl (Session.navKey model.session) Route.Home)
+            ( model, Route.replaceUrl (Session.navKey model.session) ( Route.Home (Just model.search) ) )
 
         ChangeSearch search ->
             ({model | search = search}, Cmd.none)

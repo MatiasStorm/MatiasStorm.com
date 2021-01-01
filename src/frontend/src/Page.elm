@@ -62,7 +62,7 @@ navbarView page loggedIn =
 isActive : Page -> Route -> Bool
 isActive page route = 
     case (page, route) of
-        (Home, Route.Home ) -> True
+        (Home, Route.Home _ ) -> True
         (Admin, Route.Admin _) -> True
         (About, Route.About) -> True
         -- (Post, Route.Post) -> True

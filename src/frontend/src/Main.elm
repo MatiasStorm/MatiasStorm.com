@@ -136,8 +136,8 @@ changeRouteTo maybeRoute model =
         Just Route.Logout ->
             ( model, Api.logout )
 
-        Just Route.Home ->
-            Home.init session
+        Just ( Route.Home search ) ->
+            Home.init session search
                 |> updateWith Home GotHomeMsg model
 
         Just Route.Login ->
@@ -197,7 +197,7 @@ update msg model =
 
         ( GotSession session, Redirect _ ) ->
             ( Redirect session
-            , Route.replaceUrl (Session.navKey session) Route.Home
+            , Route.replaceUrl (Session.navKey session) ( Route.Home Nothing )
             )
 
         ( _, _ ) ->
