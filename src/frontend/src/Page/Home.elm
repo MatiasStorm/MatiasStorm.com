@@ -20,6 +20,7 @@ import Views.PostView as PostView
 import Views.StrippedPostView as StrippedPostView
 import Data.StrippedPost as SPD exposing (StrippedPost)
 import Views.PostCategoryTag as TagView
+import Views.SearchBar as SearchBar
 
 
 type Msg
@@ -28,9 +29,8 @@ type Msg
     | GotSession Session
     | GoToPost String
     | DoSearch
-    | ChangeSearch String
+    | GotSearchBarMsg SearchBar.Msg
     | ToggleCategory String
-    | ResetSearch 
 
 -- Model
 type Status
@@ -45,6 +45,7 @@ type alias Model =
     , categories : (List PostCategory)
     , search : String
     , activeCategories : (List String)
+    , searchBarModel : SearchBar.Model
     }
 
 initModel : Session -> String -> Model
@@ -55,6 +56,7 @@ initModel session search =
     , categories = []
     , search = search
     , activeCategories = []
+    , searchBarModel = SearchBar.initModel
     }
 
 -- Init
@@ -120,11 +122,21 @@ update msg model =
         DoSearch ->
             ( model, Route.pushUrl (Session.navKey model.session) ( Route.Home (Just model.search) ) )
 
-        ChangeSearch search ->
-            ({model | search = search}, Cmd.none)
+        GotSearchBarMsg searchBarMsg ->
+            let
+                (subModel, subCmd, outMsg) = SearchBar.update searchBarMsg model.searchBarModel
 
-        ResetSearch ->
-            ({model | search = ""},Route.pushUrl (Session.navKey model.session) ( Route.Home Nothing ) )
+                getCommands =
+                    case outMsg of
+                        Just SearchBar.DoSearch ->
+                            [Cmd.map GotSearchBarMsg subCmd
+                            ,Route.pushUrl (Session.navKey model.session) ( Route.Home (Just ( SearchBar.getSearchText subModel )) ) 
+                            ]
+                        Nothing ->
+                            [Cmd.map GotSearchBarMsg subCmd]
+            in
+            ( {model | searchBarModel = subModel}
+            , Cmd.batch getCommands)
 
         ToggleCategory id ->
             let 
@@ -159,7 +171,7 @@ view model =
                 Success ->
                     div [class "container"]  
                         [ div []
-                                [ searchBarView model
+                                [ Html.map GotSearchBarMsg <| SearchBar.view model.searchBarModel
                                 , selectCategoryView model ]
                         , div []
                                 (List.map postView model.posts)
@@ -175,14 +187,6 @@ postView post =
         , style "cursor" "pointer"
         ] 
         [StrippedPostView.view post]
-
-searchBarView : Model -> Html Msg
-searchBarView model =
-    form [class "mt-2 input-group", onSubmit DoSearch] 
-        [ button [class "btn btn-dark bt-lg mr-1", type_ "submit"] [text "Search"]
-        , button [class "btn btn-secondary bt-lg mr-1", type_ "button", onClick ResetSearch] [text "Reset"]
-        , input [class "form-control", onInput ChangeSearch, value model.search] [] 
-        ]
 
 selectCategoryView : Model -> Html Msg
 selectCategoryView model =
