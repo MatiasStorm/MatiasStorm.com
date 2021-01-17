@@ -18,12 +18,14 @@ import Http
 import Html.Events exposing (onClick, onInput, onCheck)
 import Multiselect
 import Views.PostForm as PostForm
+import Views.SearchBar as SearchBar
 
 -- types
 type Msg
     = GotPosts (Result Http.Error (List Post))
     | GotSession Session
     | GoToEditPost ( Maybe String )
+    | GotSearchBarMsg SearchBar.Msg
 
 
 type Status
@@ -58,11 +60,28 @@ update msg model =
             in
             (model, Route.pushUrl navKey route )
 
+        GotSearchBarMsg searchBarMsg ->
+            let
+                (subModel, subCmd, outMsg) = SearchBar.update searchBarMsg model.searchBarModel
+
+                getCommands =
+                    case outMsg of
+                        Just SearchBar.DoSearch ->
+                            [Cmd.map GotSearchBarMsg subCmd
+                            ,Route.pushUrl (Session.navKey model.session) ( Route.Home (Just ( SearchBar.getSearchText subModel )) ) 
+                            ]
+                        Nothing ->
+                            [Cmd.map GotSearchBarMsg subCmd]
+            in
+            ( {model | searchBarModel = subModel}
+            , Cmd.batch getCommands)
+
 
 type alias Model =
     { posts : (List Post)
     , status : Status
     , session : Session
+    , searchBarModel : SearchBar.Model
     }
 
 
@@ -80,6 +99,7 @@ initialModel session =
     { posts = []
     , status = Loading
     , session = session
+    , searchBarModel = SearchBar.initModel
     }
 
 
@@ -114,6 +134,7 @@ contentView model =
     in
     div [ Attr.class "container-fluid" ] 
         [ newPostButtonView model
+        , Html.map GotSearchBarMsg ( SearchBar.view model.searchBarModel ) 
         , postTableView model
         ]
 
