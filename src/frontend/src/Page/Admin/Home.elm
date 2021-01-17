@@ -162,7 +162,7 @@ postTableView model =
                 ]
 
     in
-    div [ Attr.class "col-6" ] 
+    div [  ] 
         [ h2 [] [ text "Post Posts:" ]
         , div [] (List.map postRow model.posts)
         ]
