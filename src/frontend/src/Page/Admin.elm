@@ -58,8 +58,8 @@ init session adminRoute =
     case Session.cred session of
         Just cred -> 
             case adminRoute of
-                Route.AdminHome ->
-                    Home.init session
+                Route.AdminHome maybeSearch ->
+                    Home.init session maybeSearch
                         |> updateWith Home GotHomeMsg (Redirect session)
 
                 Route.AdminEditPost postId ->

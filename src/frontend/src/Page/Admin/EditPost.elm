@@ -75,7 +75,7 @@ update msg model =
         GotPostResponse result ->
             case result of 
                 Ok post ->
-                    (model, Route.pushUrl (Session.navKey model.session) (Route.Admin Route.AdminHome))
+                    (model, Route.pushUrl (Session.navKey model.session) (Route.Admin <| Route.AdminHome Nothing))
 
                 Err _ ->
                     (model, Cmd.none) -- Maybe display error at some point.
@@ -89,7 +89,7 @@ update msg model =
 
         Cancel ->
             ( model
-            , Route.pushUrl (Session.navKey model.session) (Route.Admin Route.AdminHome) 
+            , Route.pushUrl (Session.navKey model.session) (Route.Admin <| Route.AdminHome Nothing) 
             )
 
         Submit ->

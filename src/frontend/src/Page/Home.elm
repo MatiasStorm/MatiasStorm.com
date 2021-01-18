@@ -28,7 +28,6 @@ type Msg
     | GotPostCategories (Result Http.Error (List PostCategory))
     | GotSession Session
     | GoToPost String
-    | DoSearch
     | GotSearchBarMsg SearchBar.Msg
     | ToggleCategory String
 
@@ -118,9 +117,6 @@ update msg model =
                 route = Route.Post postId
             in
             (model, Route.pushUrl key route)
-
-        DoSearch ->
-            ( model, Route.pushUrl (Session.navKey model.session) ( Route.Home (Just model.search) ) )
 
         GotSearchBarMsg searchBarMsg ->
             let

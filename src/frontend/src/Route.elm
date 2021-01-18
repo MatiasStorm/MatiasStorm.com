@@ -28,7 +28,7 @@ type Route
     | Post String
 
 type AdminRoute 
-    = AdminHome
+    = AdminHome (Maybe String)
     | AdminEditPost String
     | AdminNewPost
 
@@ -48,7 +48,7 @@ parser =
 adminParser : Parser (AdminRoute -> a) a
 adminParser =
     oneOf
-        [ Parser.map AdminHome Parser.top
+        [ Parser.map AdminHome ( Parser.top <?> Query.string "search" )
         , Parser.map AdminEditPost (s "edit" </> string)
         , Parser.map AdminNewPost (s "new")
         ]
@@ -105,8 +105,12 @@ routeToPieces page =
 
         Admin adminRoute ->
             case adminRoute of
-                AdminHome ->
-                    ( [ "admin" ], [] )
+                AdminHome maybeString ->
+                    case maybeString of
+                        Just string ->
+                            ( ["admin"], [Url.Builder.string "search" string] )
+                        Nothing ->
+                            (["admin"], [])
                 AdminNewPost ->
                     ( ["admin", "new"], [] )
                 AdminEditPost postId ->

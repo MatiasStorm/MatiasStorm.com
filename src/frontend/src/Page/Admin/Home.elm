@@ -9,7 +9,7 @@ module Page.Admin.Home exposing
 import Views.MarkdownView exposing (renderMarkdown)
 import Html exposing (..)
 import Api exposing (Cred)
-import Data.Post as PostData exposing (Post)
+import Data.StrippedPost as SPD exposing (StrippedPost)
 import Data.PostCategory as CategoryData exposing (PostCategory)
 import Route
 import Html.Attributes as Attr
@@ -22,7 +22,7 @@ import Views.SearchBar as SearchBar
 
 -- types
 type Msg
-    = GotPosts (Result Http.Error (List Post))
+    = GotPosts (Result Http.Error (List StrippedPost))
     | GotSession Session
     | GoToEditPost ( Maybe String )
     | GotSearchBarMsg SearchBar.Msg
@@ -63,12 +63,13 @@ update msg model =
         GotSearchBarMsg searchBarMsg ->
             let
                 (subModel, subCmd, outMsg) = SearchBar.update searchBarMsg model.searchBarModel
+                route = Route.Admin (Route.AdminHome (Just (SearchBar.getSearchText subModel))) 
 
                 getCommands =
                     case outMsg of
                         Just SearchBar.DoSearch ->
                             [Cmd.map GotSearchBarMsg subCmd
-                            ,Route.pushUrl (Session.navKey model.session) ( Route.Home (Just ( SearchBar.getSearchText subModel )) ) 
+                            , route |> Route.pushUrl (Session.navKey model.session)
                             ]
                         Nothing ->
                             [Cmd.map GotSearchBarMsg subCmd]
@@ -78,10 +79,11 @@ update msg model =
 
 
 type alias Model =
-    { posts : (List Post)
+    { posts : (List StrippedPost)
     , status : Status
     , session : Session
     , searchBarModel : SearchBar.Model
+    , search : String
     }
 
 
@@ -94,27 +96,33 @@ subscriptions model =
 
 -- Init
 
-initialModel : Session -> Model
-initialModel session = 
+initialModel : Session -> String -> Model
+initialModel session search = 
     { posts = []
     , status = Loading
     , session = session
     , searchBarModel = SearchBar.initModel
+    , search = search
     }
 
 
-init : Session -> (Model, Cmd Msg)
-init session =
+init : Session -> Maybe String -> (Model, Cmd Msg)
+init session maybeSearch =
     let
+        search = 
+            case maybeSearch of
+                Just s -> s
+                Nothing -> ""
+
         commands =
             case Session.cred session of
                 Just cres -> 
-                    [ PostData.list (Session.cred session) GotPosts]
+                    [ SPD.get (SPD.search search [])(Session.cred session) GotPosts]
 
                 Nothing -> 
                     [ Route.pushUrl (Session.navKey session) Route.Login ]
     in
-    ( initialModel session
+    ( initialModel session search
     , Cmd.batch commands  
     )
 
@@ -132,25 +140,28 @@ contentView model =
         optionView : PostCategory -> Html msg
         optionView category = option [ Attr.id "postCategories" ] [text category.category_name] 
     in
-    div [ Attr.class "container-fluid" ] 
-        [ newPostButtonView model
+    div [ Attr.class "container mt-2" ] 
+        [ header model
         , Html.map GotSearchBarMsg ( SearchBar.view model.searchBarModel ) 
         , postTableView model
         ]
 
 
-newPostButtonView : Model -> Html Msg
-newPostButtonView model = 
-    button 
-        [ Attr.class "btn btn-success"
-        , onClick ( GoToEditPost Nothing )
-        ] [ text "New Post" ]
+header : Model -> Html Msg
+header model = 
+    div [Attr.class "row justify-content-between"]
+        [ h2 [Attr.class "col-auto"] [ text "Posts:" ]
+        , button 
+            [ Attr.class "btn btn-success col-auto"
+            , onClick ( GoToEditPost Nothing )
+            ] [ text "New Post" ]
+        ]
 
 
 postTableView : Model -> Html Msg
 postTableView model =
     let
-        postRow : Post -> Html Msg
+        postRow : StrippedPost -> Html Msg
         postRow post =
             div [Attr.class "row border-bottom py-2 border-grey justify-content-between"] 
                 [ h5 [ Attr.class "col-auto" ] [ text post.title ]  
@@ -162,10 +173,7 @@ postTableView model =
                 ]
 
     in
-    div [  ] 
-        [ h2 [] [ text "Post Posts:" ]
-        , div [] (List.map postRow model.posts)
-        ]
+    div [Attr.class "mt-2"] (List.map postRow model.posts)
 
 toSession : Model -> Session
 toSession model =
