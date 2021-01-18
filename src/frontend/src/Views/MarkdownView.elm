@@ -67,7 +67,6 @@ codeBlock { body, language } =
             |> Result.map (SH.toBlockHtml (Just 1))
             |> Result.withDefault
                 (Html.pre [] [ Html.code [] [ Html.text body ]])
-
         ]
 
 renderer : Renderer (Html.Html msg)

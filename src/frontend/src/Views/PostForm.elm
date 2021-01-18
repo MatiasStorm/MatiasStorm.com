@@ -12,11 +12,13 @@ import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events exposing (onInput, onClick, onCheck)
 import Multiselect
+import Views.CodeTextArea as CodeTextArea
 
 type alias Model =
     { post : Post
     , postCategories : List PostCategory
     , postCategoryMultiselectModel : Multiselect.Model
+    , textAreaModel : CodeTextArea.Model
     }
 
 type Msg
@@ -24,6 +26,7 @@ type Msg
     | Text String
     | Categories Multiselect.Msg
     | Published Bool
+    | GotTextAreaMsg CodeTextArea.Msg
 
 -- Subscriptions
 
@@ -76,6 +79,12 @@ update msg model =
             in
             ( { model | post = updatePublished model.post }, Cmd.none)
 
+        GotTextAreaMsg textAreaMsg ->
+            let
+                ( subModel, subMsg ) = CodeTextArea.update textAreaMsg model.textAreaModel
+            in
+            ( { model | textAreaModel = subModel }, Cmd.map GotTextAreaMsg subMsg )
+
 -- Multiselect
 multiSelectModel : Post -> List PostCategory -> Multiselect.Model
 multiSelectModel post postCategories =
@@ -100,6 +109,7 @@ initModel post postCategories =
     { post = post
     , postCategories = postCategories
     , postCategoryMultiselectModel = multiSelectModel post postCategories
+    , textAreaModel = CodeTextArea.initModel post.text
     }
 
 view : Model -> Html Msg
@@ -121,13 +131,14 @@ view model =
         , Html.map Categories <| Multiselect.view model.postCategoryMultiselectModel
         , div [ Attr.class "form-group" ] 
             [ label [Attr.for "postText"] [ text "Post Text" ]
-            , textarea 
-                [ Attr.class "form-control"
-                , Attr.style "height" "60vh"
-                , Attr.id "postText"
-                , Attr.value post.text 
-                , onInput Text
-                ] [] 
+            , Html.map GotTextAreaMsg ( CodeTextArea.view model.textAreaModel )
+            -- , textarea 
+            --     [ Attr.class "form-control"
+            --     , Attr.style "height" "60vh"
+            --     , Attr.id "postText"
+            --     , Attr.value post.text 
+            --     , onInput Text
+            --     ] [] 
             ] 
         , div [ Attr.class "form-check" ] 
             [ input [ Attr.class "form-check-input"

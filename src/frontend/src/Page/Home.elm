@@ -14,7 +14,6 @@ import Http
 import Views.MarkdownView exposing (renderMarkdown)
 import Session exposing (Session)
 import Route
-import Data.Post as PostData exposing (Post)
 import Data.PostCategory as CategoryData exposing (PostCategory)
 import Views.PostView as PostView
 import Views.StrippedPostView as StrippedPostView
