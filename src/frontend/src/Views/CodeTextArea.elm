@@ -11,6 +11,8 @@ import Html.Attributes exposing (..)
 import SyntaxHighlight as SH
 import Dict exposing (Dict)
 import Parser
+import Html.Events exposing (onInput)
+import Json.Decode as Json
 
 
 type alias Scroll = 
@@ -21,43 +23,83 @@ type alias Scroll =
 type alias Model =
     { scroll : Scroll
     , code : String
+    , theme : String
     }
 
 initModel : String -> Model
 initModel code =
     { scroll = Scroll 0 0 
     , code = code
+    , theme = "GitHub"
     }
 
 type Msg 
-    = SetText String String
+    = SetText String
     | OnScroll Scroll
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
-        SetText s s1 ->
-            (model, Cmd.none)
+        SetText code ->
+            ({model | code = code}, Cmd.none)
+
         OnScroll scroll ->
-            (model, Cmd.none)
+            ({model | scroll = scroll}, Cmd.none)
 
 view : Model -> Html Msg
 view model =
     div []
-        [ viewLanguage model toHtmlElm
+        [ Html.Lazy.lazy textareaStyle model.theme
+        , Html.Lazy.lazy syntaxThemeStyle model.theme
+        , viewLanguage model toHtmlElm
         ]
 
+textareaStyle : String -> Html msg
+textareaStyle theme =
+    let
+        style a b =
+            Html.node "style"
+                []
+                [ text
+                    (String.join "\n"
+                        [ ".code-text-textarea {caret-color: " ++ a ++ ";}"
+                        , ".code-text-textarea::selection { background-color: " ++ b ++ "; }"
+                        ]
+                    )
+                ]
+    in
+    if List.member theme [ "Monokai", "One Dark", "Custom" ] then
+        style "#f8f8f2" "rgba(255,255,255,0.2)"
+
+    else
+        style "#24292e" "rgba(0,0,0,0.2)"
+
+
+syntaxThemeStyle : String -> Html msg
+syntaxThemeStyle selectedTheme =
+    case selectedTheme of
+        "Monokai" ->
+            SH.useTheme SH.monokai
+
+        "GitHub" ->
+            SH.useTheme SH.gitHub
+
+        "One Dark" ->
+            SH.useTheme SH.oneDark
+
+        _ ->
+            SH.useTheme SH.gitHub
 
 viewLanguage : Model -> (Maybe Int -> String -> Html Msg) -> Html Msg
 viewLanguage model parser =
     div
         [ classList
-            [ ( "container", True )
+            [ ( "code-text-container", True )
             , ( "elmsh", True )
             ]
         ]
         [ div
-            [ class "view-container"
+            [ class "code-text-view-container"
             , style "transform"
                 ("translate("
                     ++ String.fromInt -model.scroll.left
@@ -77,17 +119,17 @@ viewTextarea body =
     textarea
         [ value body
         , classList
-            [ ( "textarea", True )
-            , ( "textarea-lc", True )
+            [ ( "code-text-textarea", True )
+            , ( "code-text-textarea-lc", True )
             ]
-        -- , onInput (SetText thisLang)
+        , onInput SetText
         , spellcheck False
-        -- , Html.Events.on "scroll"
-        --     (Json.map2 Scroll
-        --         (Json.at [ "target", "scrollTop" ] Json.int)
-        --         (Json.at [ "target", "scrollLeft" ] Json.int)
-        --         |> Json.map OnScroll
-        --     )
+        , Html.Events.on "scroll"
+            (Json.map2 Scroll
+                (Json.at [ "target", "scrollTop" ] Json.int)
+                (Json.at [ "target", "scrollLeft" ] Json.int)
+                |> Json.map OnScroll
+            )
         ]
         []
 

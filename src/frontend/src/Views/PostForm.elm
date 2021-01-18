@@ -132,13 +132,6 @@ view model =
         , div [ Attr.class "form-group" ] 
             [ label [Attr.for "postText"] [ text "Post Text" ]
             , Html.map GotTextAreaMsg ( CodeTextArea.view model.textAreaModel )
-            -- , textarea 
-            --     [ Attr.class "form-control"
-            --     , Attr.style "height" "60vh"
-            --     , Attr.id "postText"
-            --     , Attr.value post.text 
-            --     , onInput Text
-            --     ] [] 
             ] 
         , div [ Attr.class "form-check" ] 
             [ input [ Attr.class "form-check-input"

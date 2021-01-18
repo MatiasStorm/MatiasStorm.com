@@ -19,17 +19,28 @@ code.elmsh {
   opacity: 0.3;
 }
 
+pre.elmsh {
+  overflow: visible;
+}
 
 /* CodeTextArea styles */
+.code-text-container {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
 
-.textarea,
-.view-container {
+.code-text-textarea,
+.code-text-view-container {
   box-sizing: border-box;
   font-size: 1rem;
   line-height: 1.2;
   width: 100%;
-  height: 100%;
-  height: 250px;
+  height: 60vh;
   font-family: monospace;
   letter-spacing: normal;
   word-spacing: normal;
@@ -40,23 +51,24 @@ code.elmsh {
   white-space: pre;
 }
 
-.textarea {
+.code-text-textarea {
   color: rgba(0, 0, 0, 0);
   resize: none;
   z-index: 2;
   position: relative;
-  padding: 10px;
+  font-size: 14px;
+  padding-top: 10px;
 }
 
-.textarea-lc {
-  padding-left: 70px;
+.code-text-textarea-lc {
+  padding-left: 50px;
 }
 
-.textarea:focus {
+.code-text-textarea:focus {
   outline: none;
 }
 
-.view-container {
+.code-text-view-container {
   position: absolute;
   top: 0;
   left: 0;
