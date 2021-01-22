@@ -96,7 +96,7 @@ subscriptions model =
             Sub.none
 
         Edit edit ->
-            Sub.none
+            Sub.map GotEditMsg <| EditPost.subscriptions edit
 
 
 

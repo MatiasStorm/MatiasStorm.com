@@ -37,9 +37,6 @@ subscriptions model =
 -- Update 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model = 
-    let
-        _ = Debug.log "model" model
-    in
     case msg of
         Title title ->
             let
