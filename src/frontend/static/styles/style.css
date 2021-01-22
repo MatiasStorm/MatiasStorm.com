@@ -54,7 +54,6 @@ pre.elmsh {
 .code-text-textarea {
   color: rgba(0, 0, 0, 0);
   resize: none;
-  z-index: 2;
   position: relative;
   font-size: 14px;
   padding-top: 10px;
@@ -73,5 +72,4 @@ pre.elmsh {
   top: 0;
   left: 0;
   pointer-events: none;
-  z-index: 1;
 }
